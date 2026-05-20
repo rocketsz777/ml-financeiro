@@ -54,7 +54,7 @@ public class WebhookController {
     }
 
     private String extractId(String resource, JsonNode payload) {
-        if (resource != null && resource.matches(".*/orders/\d+")) {
+        if (resource != null && resource.matches(".*/orders/\\d+")) {
             return resource.substring(resource.lastIndexOf('/') + 1);
         }
         return payload.path("id").asText("");
