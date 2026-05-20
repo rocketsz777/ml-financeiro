@@ -1,0 +1,8 @@
+server:
+  port: 8080
+
+mercadolivre:
+  access-token: SEU_ACCESS_TOKEN_AQUI
+
+app:
+  data-dir: ./data
