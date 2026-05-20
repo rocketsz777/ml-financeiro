@@ -62,7 +62,9 @@ public class SalesService {
         Sale sale = new Sale(
                 request.getOrderId(),
                 request.getSku(),
-                request.getProductName() == null || request.getProductName().isBlank() ? product.getName() : request.getProductName(),
+                request.getProductName() == null || request.getProductName().trim().isEmpty()
+                        ? product.getName()
+                        : request.getProductName(),
                 request.getQuantity(),
                 request.getUnitSalePrice(),
                 productCost,
