@@ -44,10 +44,9 @@ public class MarketplaceService {
 
             try {
 
-                List<Sale> sales =
-                        importSales(marketplace);
-
-                allSales.addAll(sales);
+                allSales.addAll(
+                        importSales(marketplace)
+                );
 
             } catch (Exception e) {
 
