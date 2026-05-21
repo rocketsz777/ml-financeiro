@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.integration;
+package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;

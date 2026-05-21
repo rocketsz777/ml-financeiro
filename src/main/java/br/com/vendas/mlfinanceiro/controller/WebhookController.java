@@ -1,13 +1,12 @@
 package br.com.vendas.mlfinanceiro.controller;
 
-import br.com.vendas.mlfinanceiro.integration.MercadoLivreClient;
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.MercadoLivreClient;
 import br.com.vendas.mlfinanceiro.service.SalesService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 
 @RestController
 @RequestMapping("/api/webhook")
