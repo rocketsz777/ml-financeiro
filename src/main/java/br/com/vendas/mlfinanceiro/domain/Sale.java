@@ -8,6 +8,7 @@ public class Sale {
     private String orderId;
     private String sku;
     private String productName;
+    private Marketplace marketplace;
     private int quantity;
     private BigDecimal unitSalePrice;
     private BigDecimal productCost;
@@ -23,6 +24,7 @@ public class Sale {
             String orderId,
             String sku,
             String productName,
+            Marketplace marketplace,
             int quantity,
             BigDecimal unitSalePrice,
             BigDecimal productCost,
@@ -35,6 +37,7 @@ public class Sale {
         this.orderId = orderId;
         this.sku = sku;
         this.productName = productName;
+        this.marketplace = marketplace;
         this.quantity = quantity;
         this.unitSalePrice = unitSalePrice;
         this.productCost = productCost;
@@ -66,6 +69,14 @@ public class Sale {
 
     public void setProductName(String productName) {
         this.productName = productName;
+    }
+
+    public Marketplace getMarketplace() {
+        return marketplace;
+    }
+
+    public void setMarketplace(Marketplace marketplace) {
+        this.marketplace = marketplace;
     }
 
     public int getQuantity() {
@@ -136,6 +147,7 @@ public class Sale {
         return safe(orderId) + ";" +
                 safe(sku) + ";" +
                 safe(productName) + ";" +
+                marketplace + ";" +
                 quantity + ";" +
                 unitSalePrice + ";" +
                 productCost + ";" +
@@ -153,13 +165,14 @@ public class Sale {
                 emptyToNull(p[0]),
                 emptyToNull(p[1]),
                 emptyToNull(p[2]),
-                Integer.parseInt(p[3]),
-                new BigDecimal(p[4]),
+                Marketplace.valueOf(p[3]),
+                Integer.parseInt(p[4]),
                 new BigDecimal(p[5]),
                 new BigDecimal(p[6]),
                 new BigDecimal(p[7]),
                 new BigDecimal(p[8]),
-                LocalDateTime.parse(p[9])
+                new BigDecimal(p[9]),
+                LocalDateTime.parse(p[10])
         );
     }
 

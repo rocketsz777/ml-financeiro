@@ -5,48 +5,73 @@ import br.com.vendas.mlfinanceiro.dto.MonthlySummaryResponse;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
 import br.com.vendas.mlfinanceiro.service.ReportService;
 import br.com.vendas.mlfinanceiro.service.SalesService;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.YearMonth;
-import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/sales")
 public class SalesController {
 
     private final SalesService salesService;
     private final ReportService reportService;
 
-    public SalesController(SalesService salesService, ReportService reportService) {
+    public SalesController(
+            SalesService salesService,
+            ReportService reportService
+    ) {
+
         this.salesService = salesService;
         this.reportService = reportService;
     }
 
-    @PostMapping("/vendas")
-    public Sale registrarVenda(@RequestBody SaleRequest request) {
+    @PostMapping
+    public Sale registerSale(
+            @RequestBody SaleRequest request
+    ) {
+
         return salesService.registerSale(request);
     }
 
-    @GetMapping("/vendas")
-    public List<Sale> listarVendas() {
-        return salesService.listSales();
+    @GetMapping("/summary")
+    public MonthlySummaryResponse summary(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+
+        return reportService.monthlySummary(
+                YearMonth.of(year, month)
+        );
     }
 
-    @GetMapping("/resumo/{mes}")
-    public MonthlySummaryResponse resumo(@PathVariable String mes) {
-        return reportService.monthlySummary(YearMonth.parse(mes));
-    }
+    @GetMapping("/report")
+    public ResponseEntity<FileSystemResource> report(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
 
-    @GetMapping("/fechamento/{mes}/excel")
-    public ResponseEntity<byte[]> excel(@PathVariable String mes) throws Exception {
-        Path path = reportService.generateExcel(YearMonth.parse(mes));
+        Path file =
+                reportService.generateExcel(
+                        YearMonth.of(year, month)
+                );
+
+        FileSystemResource resource =
+                new FileSystemResource(file);
+
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=" + path.getFileName())
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(Files.readAllBytes(path));
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" +
+                                file.getFileName()
+                )
+                .contentType(
+                        MediaType.APPLICATION_OCTET_STREAM
+                )
+                .body(resource);
     }
 }
