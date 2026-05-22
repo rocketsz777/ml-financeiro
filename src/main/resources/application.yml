@@ -1,8 +1,9 @@
 server:
   port: 8080
 
-mercadolivre:
-  access-token: SEU_ACCESS_TOKEN_AQUI
+spring:
+  profiles:
+    active: local
 
 app:
   data-dir: ./data
