@@ -6,15 +6,25 @@ import java.time.LocalDateTime;
 public class Sale {
 
     private String orderId;
+
     private String sku;
+
     private String productName;
+
     private Marketplace marketplace;
+
     private int quantity;
+
     private BigDecimal unitSalePrice;
+
     private BigDecimal productCost;
+
     private BigDecimal marketplaceFee;
+
     private BigDecimal shippingCost;
+
     private BigDecimal profit;
+
     private LocalDateTime soldAt;
 
     public Sale() {
@@ -48,97 +58,143 @@ public class Sale {
     }
 
     public String getOrderId() {
+
         return orderId;
     }
 
-    public void setOrderId(String orderId) {
+    public void setOrderId(
+            String orderId
+    ) {
+
         this.orderId = orderId;
     }
 
     public String getSku() {
+
         return sku;
     }
 
-    public void setSku(String sku) {
+    public void setSku(
+            String sku
+    ) {
+
         this.sku = sku;
     }
 
     public String getProductName() {
+
         return productName;
     }
 
-    public void setProductName(String productName) {
+    public void setProductName(
+            String productName
+    ) {
+
         this.productName = productName;
     }
 
     public Marketplace getMarketplace() {
+
         return marketplace;
     }
 
-    public void setMarketplace(Marketplace marketplace) {
+    public void setMarketplace(
+            Marketplace marketplace
+    ) {
+
         this.marketplace = marketplace;
     }
 
     public int getQuantity() {
+
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(
+            int quantity
+    ) {
+
         this.quantity = quantity;
     }
 
     public BigDecimal getUnitSalePrice() {
+
         return unitSalePrice;
     }
 
-    public void setUnitSalePrice(BigDecimal unitSalePrice) {
+    public void setUnitSalePrice(
+            BigDecimal unitSalePrice
+    ) {
+
         this.unitSalePrice = unitSalePrice;
     }
 
     public BigDecimal getProductCost() {
+
         return productCost;
     }
 
-    public void setProductCost(BigDecimal productCost) {
+    public void setProductCost(
+            BigDecimal productCost
+    ) {
+
         this.productCost = productCost;
     }
 
     public BigDecimal getMarketplaceFee() {
+
         return marketplaceFee;
     }
 
-    public void setMarketplaceFee(BigDecimal marketplaceFee) {
+    public void setMarketplaceFee(
+            BigDecimal marketplaceFee
+    ) {
+
         this.marketplaceFee = marketplaceFee;
     }
 
     public BigDecimal getShippingCost() {
+
         return shippingCost;
     }
 
-    public void setShippingCost(BigDecimal shippingCost) {
+    public void setShippingCost(
+            BigDecimal shippingCost
+    ) {
+
         this.shippingCost = shippingCost;
     }
 
     public BigDecimal getProfit() {
+
         return profit;
     }
 
-    public void setProfit(BigDecimal profit) {
+    public void setProfit(
+            BigDecimal profit
+    ) {
+
         this.profit = profit;
     }
 
     public LocalDateTime getSoldAt() {
+
         return soldAt;
     }
 
-    public void setSoldAt(LocalDateTime soldAt) {
+    public void setSoldAt(
+            LocalDateTime soldAt
+    ) {
+
         this.soldAt = soldAt;
     }
 
     public BigDecimal grossRevenue() {
 
         return unitSalePrice.multiply(
-                BigDecimal.valueOf(quantity)
+                BigDecimal.valueOf(
+                        quantity
+                )
         );
     }
 
@@ -157,15 +213,32 @@ public class Sale {
                 soldAt;
     }
 
-    public static Sale fromCsv(String line) {
+    public static Sale fromCsv(
+            String line
+    ) {
 
-        String[] p = line.split(";", -1);
+        String[] p =
+                line.split(";", -1);
+
+        Marketplace marketplace =
+                Marketplace.MERCADO_LIVRE;
+
+        if (p.length > 3 &&
+                p[3] != null &&
+                !p[3].trim().isEmpty() &&
+                !"null".equalsIgnoreCase(p[3])) {
+
+            marketplace =
+                    Marketplace.valueOf(
+                            p[3]
+                    );
+        }
 
         return new Sale(
                 emptyToNull(p[0]),
                 emptyToNull(p[1]),
                 emptyToNull(p[2]),
-                Marketplace.valueOf(p[3]),
+                marketplace,
                 Integer.parseInt(p[4]),
                 new BigDecimal(p[5]),
                 new BigDecimal(p[6]),
@@ -176,18 +249,25 @@ public class Sale {
         );
     }
 
-    private static String safe(String v) {
+    private static String safe(
+            String v
+    ) {
 
         if (v == null) {
+
             return "";
         }
 
         return v.replace(";", ",");
     }
 
-    private static String emptyToNull(String v) {
+    private static String emptyToNull(
+            String v
+    ) {
 
-        if (v == null || v.trim().isEmpty()) {
+        if (v == null ||
+                v.trim().isEmpty()) {
+
             return null;
         }
 
