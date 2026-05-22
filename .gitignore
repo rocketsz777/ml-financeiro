@@ -2,4 +2,7 @@ target/
 .idea/
 *.iml
 
+src/main/resources/application-local.yml
+
 /data/*.xlsx
+/data/*.csv
