@@ -1,15 +1,14 @@
 package br.com.vendas.mlfinanceiro.service;
 
+import br.com.vendas.mlfinanceiro.domain.MarketplaceListing;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,27 +16,45 @@ import java.util.List;
 public class FileStoreService {
 
     private final Path dataDir;
+
     private final Path productsFile;
+
     private final Path salesFile;
 
+    private final Path listingsFile;
+
     public FileStoreService(
-            @Value("${app.data-dir:./data}") String dataDir
+            @Value("${app.data-dir:./data}")
+            String dataDir
     ) {
 
-        this.dataDir = Paths.get(dataDir)
-                .toAbsolutePath()
-                .normalize();
+        this.dataDir =
+                Paths.get(dataDir)
+                        .toAbsolutePath()
+                        .normalize();
 
         this.productsFile =
-                this.dataDir.resolve("produtos.csv");
+                this.dataDir.resolve(
+                        "produtos.csv"
+                );
 
         this.salesFile =
-                this.dataDir.resolve("vendas.csv");
+                this.dataDir.resolve(
+                        "vendas.csv"
+                );
+
+        this.listingsFile =
+                this.dataDir.resolve(
+                        "listings.csv"
+                );
     }
 
-    public void ensureFilesExist() throws IOException {
+    public void ensureFilesExist()
+            throws IOException {
 
-        Files.createDirectories(dataDir);
+        Files.createDirectories(
+                dataDir
+        );
 
         if (Files.notExists(productsFile)) {
 
@@ -53,10 +70,17 @@ public class FileStoreService {
 
             Files.write(
                     salesFile,
-                    ("orderId;sku;productName;quantity;" +
-                            "unitSalePrice;productCost;" +
-                            "marketplaceFee;shippingCost;" +
-                            "profit;soldAt\n")
+                    "orderId;sku;productName;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
+                            .getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE
+            );
+        }
+
+        if (Files.notExists(listingsFile)) {
+
+            Files.write(
+                    listingsFile,
+                    "marketplace;marketplaceItemId;sellerSku;productSku\n"
                             .getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE
             );
@@ -80,12 +104,12 @@ public class FileStoreService {
 
             for (int i = 1; i < lines.size(); i++) {
 
-                String line = lines.get(i);
-
-                if (!line.trim().isEmpty()) {
+                if (!lines.get(i).trim().isEmpty()) {
 
                     products.add(
-                            Product.fromCsv(line)
+                            Product.fromCsv(
+                                    lines.get(i)
+                            )
                     );
                 }
             }
@@ -101,26 +125,28 @@ public class FileStoreService {
         }
     }
 
-    public void saveProducts(List<Product> products) {
+    public void saveProducts(
+            List<Product> products
+    ) {
 
         try {
 
             StringBuilder sb =
-                    new StringBuilder();
-
-            sb.append(
-                    "sku;mlItemId;name;costPrice;stock\n"
-            );
+                    new StringBuilder(
+                            "sku;mlItemId;name;costPrice;stock\n"
+                    );
 
             for (Product p : products) {
 
-                sb.append(p.toCsv())
-                        .append("\n");
+                sb.append(
+                        p.toCsv()
+                ).append("\n");
             }
 
             Files.write(
                     productsFile,
-                    sb.toString().getBytes(StandardCharsets.UTF_8),
+                    sb.toString()
+                            .getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE
             );
@@ -151,12 +177,12 @@ public class FileStoreService {
 
             for (int i = 1; i < lines.size(); i++) {
 
-                String line = lines.get(i);
-
-                if (!line.trim().isEmpty()) {
+                if (!lines.get(i).trim().isEmpty()) {
 
                     sales.add(
-                            Sale.fromCsv(line)
+                            Sale.fromCsv(
+                                    lines.get(i)
+                            )
                     );
                 }
             }
@@ -172,29 +198,28 @@ public class FileStoreService {
         }
     }
 
-    public void saveSales(List<Sale> sales) {
+    public void saveSales(
+            List<Sale> sales
+    ) {
 
         try {
 
             StringBuilder sb =
-                    new StringBuilder();
-
-            sb.append(
-                    "orderId;sku;productName;" +
-                            "quantity;unitSalePrice;" +
-                            "productCost;marketplaceFee;" +
-                            "shippingCost;profit;soldAt\n"
-            );
+                    new StringBuilder(
+                            "orderId;sku;productName;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
+                    );
 
             for (Sale s : sales) {
 
-                sb.append(s.toCsv())
-                        .append("\n");
+                sb.append(
+                        s.toCsv()
+                ).append("\n");
             }
 
             Files.write(
                     salesFile,
-                    sb.toString().getBytes(StandardCharsets.UTF_8),
+                    sb.toString()
+                            .getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.CREATE
             );
@@ -208,7 +233,81 @@ public class FileStoreService {
         }
     }
 
+    public List<MarketplaceListing> loadListings() {
+
+        try {
+
+            ensureFilesExist();
+
+            List<String> lines =
+                    Files.readAllLines(
+                            listingsFile,
+                            StandardCharsets.UTF_8
+                    );
+
+            List<MarketplaceListing> listings =
+                    new ArrayList<MarketplaceListing>();
+
+            for (int i = 1; i < lines.size(); i++) {
+
+                if (!lines.get(i).trim().isEmpty()) {
+
+                    listings.add(
+                            MarketplaceListing.fromCsv(
+                                    lines.get(i)
+                            )
+                    );
+                }
+            }
+
+            return listings;
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Erro ao ler listings",
+                    e
+            );
+        }
+    }
+
+    public void saveListings(
+            List<MarketplaceListing> listings
+    ) {
+
+        try {
+
+            StringBuilder sb =
+                    new StringBuilder(
+                            "marketplace;marketplaceItemId;sellerSku;productSku\n"
+                    );
+
+            for (MarketplaceListing listing : listings) {
+
+                sb.append(
+                        listing.toCsv()
+                ).append("\n");
+            }
+
+            Files.write(
+                    listingsFile,
+                    sb.toString()
+                            .getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.CREATE
+            );
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Erro ao salvar listings",
+                    e
+            );
+        }
+    }
+
     public Path getDataDir() {
+
         return dataDir;
     }
 }

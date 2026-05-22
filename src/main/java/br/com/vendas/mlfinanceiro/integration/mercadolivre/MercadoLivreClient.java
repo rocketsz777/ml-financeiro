@@ -1,6 +1,7 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResponse;
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -77,6 +78,35 @@ public class MercadoLivreClient {
                 .retrieve()
                 .bodyToMono(
                         MercadoLivreOrderResponse.class
+                )
+                .block();
+    }
+    public MercadoLivreOrderDetail getOrderDetail(
+            Long orderId
+    ) {
+
+        if (!tokenStore.hasToken()) {
+
+            throw new RuntimeException(
+                    "Mercado Livre não autenticado"
+            );
+        }
+
+        String accessToken =
+                tokenStore.getToken()
+                        .getAccess_token();
+
+        return webClient.get()
+                .uri(
+                        "/orders/" + orderId
+                )
+                .header(
+                        HttpHeaders.AUTHORIZATION,
+                        "Bearer " + accessToken
+                )
+                .retrieve()
+                .bodyToMono(
+                        MercadoLivreOrderDetail.class
                 )
                 .block();
     }
