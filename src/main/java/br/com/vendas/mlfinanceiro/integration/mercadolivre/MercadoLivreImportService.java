@@ -104,11 +104,16 @@ public class MercadoLivreImportService {
                 sellerSku = "NO-SKU";
             }
 
+            sellerSku =
+                    normalizeSku(
+                            sellerSku
+                    );
+
             final String lookupSku =
-                    sellerSku.trim();
+                    sellerSku;
 
             sale.setSku(
-                    lookupSku
+                    sellerSku
             );
 
             sale.setProductName(
@@ -129,13 +134,19 @@ public class MercadoLivreImportService {
                             firstItem.getQuantity()
                     );
 
+            BigDecimal grossAmount =
+                    detail.getTotal_amount();
+
+            sale.setGrossAmount(
+                    grossAmount
+            );
+
             BigDecimal unitPrice =
-                    detail.getTotal_amount()
-                            .divide(
-                                    quantity,
-                                    2,
-                                    BigDecimal.ROUND_HALF_UP
-                            );
+                    grossAmount.divide(
+                            quantity,
+                            2,
+                            BigDecimal.ROUND_HALF_UP
+                    );
 
             sale.setUnitSalePrice(
                     unitPrice
@@ -145,11 +156,11 @@ public class MercadoLivreImportService {
                     products.stream()
                             .filter(
                                     p -> p.getSku() != null
-                                            && p.getSku()
-                                            .trim()
-                                            .equalsIgnoreCase(
-                                                    lookupSku
-                                            )
+                                            && normalizeSku(
+                                            p.getSku()
+                                    ).equalsIgnoreCase(
+                                            lookupSku
+                                    )
                             )
                             .findFirst()
                             .orElse(null);
@@ -182,18 +193,35 @@ public class MercadoLivreImportService {
                     BigDecimal.ZERO
             );
 
+            sale.setExtraCosts(
+                    BigDecimal.ZERO
+            );
+
+            BigDecimal netAmount =
+                    grossAmount
+                            .subtract(
+                                    marketplaceFee
+                            )
+                            .subtract(
+                                    sale.getShippingCost()
+                            );
+
+            sale.setNetAmount(
+                    netAmount
+            );
+
             BigDecimal totalProductCost =
                     productCost.multiply(
                             quantity
                     );
 
             sale.setProfit(
-                    detail.getTotal_amount()
-                            .subtract(
-                                    marketplaceFee
-                            )
+                    netAmount
                             .subtract(
                                     totalProductCost
+                            )
+                            .subtract(
+                                    sale.getExtraCosts()
                             )
             );
 
@@ -213,5 +241,21 @@ public class MercadoLivreImportService {
         );
 
         return imported;
+    }
+
+    private String normalizeSku(
+            String sku
+    ) {
+
+        if (sku == null) {
+
+            return "";
+        }
+
+        return sku
+                .trim()
+                .replaceAll("[^a-zA-Z0-9]", "")
+                .replaceFirst("^0+(?!$)", "")
+                .toUpperCase();
     }
 }
