@@ -16,8 +16,12 @@ public class SalesService {
 
     private final FileStoreService fileStoreService;
 
-    public SalesService(FileStoreService fileStoreService) {
-        this.fileStoreService = fileStoreService;
+    public SalesService(
+            FileStoreService fileStoreService
+    ) {
+
+        this.fileStoreService =
+                fileStoreService;
     }
 
     // =========================================
@@ -29,15 +33,17 @@ public class SalesService {
         return fileStoreService.loadProducts();
     }
 
-    public Product createOrUpdateProduct(Product product) {
+    public Product createOrUpdateProduct(
+            Product product
+    ) {
 
         List<Product> products =
                 fileStoreService.loadProducts();
 
         Optional<Product> existing =
                 products.stream()
-                        .filter(p ->
-                                p.getSku()
+                        .filter(
+                                p -> p.getSku()
                                         .equalsIgnoreCase(
                                                 product.getSku()
                                         )
@@ -46,66 +52,127 @@ public class SalesService {
 
         if (existing.isPresent()) {
 
-            Product current = existing.get();
+            Product current =
+                    existing.get();
 
-            current.setName(product.getName());
-            current.setMlItemId(product.getMlItemId());
-            current.setCostPrice(product.getCostPrice());
-            current.setStock(product.getStock());
+            current.setName(
+                    product.getName()
+            );
+
+            current.setMlItemId(
+                    product.getMlItemId()
+            );
+
+            current.setCostPrice(
+                    product.getCostPrice()
+            );
+
+            current.setStock(
+                    product.getStock()
+            );
 
         } else {
 
-            products.add(product);
+            products.add(
+                    product
+            );
         }
 
-        fileStoreService.saveProducts(products);
+        fileStoreService.saveProducts(
+                products
+        );
 
         return product;
     }
 
-    public void deleteProduct(String sku) {
+    public void deleteProduct(
+            String sku
+    ) {
 
         List<Product> products =
                 fileStoreService.loadProducts();
 
-        products.removeIf(p ->
-                p.getSku()
-                        .equalsIgnoreCase(sku)
+        products.removeIf(
+                p -> p.getSku()
+                        .equalsIgnoreCase(
+                                sku
+                        )
         );
 
-        fileStoreService.saveProducts(products);
+        fileStoreService.saveProducts(
+                products
+        );
     }
 
     // =========================================
     // VENDAS
     // =========================================
 
-    public Sale registerSale(SaleRequest request) {
+    public Sale registerSale(
+            SaleRequest request
+    ) {
 
         List<Product> products =
                 fileStoreService.loadProducts();
 
-        Product product = products.stream()
-                .filter(p ->
-                        p.getSku().equalsIgnoreCase(
-                                request.getSku()
+        Product product =
+                products.stream()
+                        .filter(
+                                p -> p.getSku()
+                                        .equalsIgnoreCase(
+                                                request.getSku()
+                                        )
                         )
-                )
-                .findFirst()
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Produto não encontrado"
-                        )
-                );
+                        .findFirst()
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Produto não encontrado"
+                                )
+                        );
 
-        if (product.getStock() < request.getQuantity()) {
+        if (product.getStock() <
+                request.getQuantity()) {
 
             throw new RuntimeException(
                     "Estoque insuficiente"
             );
         }
 
-        BigDecimal productCost =
+        BigDecimal grossAmount =
+                request.getUnitSalePrice()
+                        .multiply(
+                                BigDecimal.valueOf(
+                                        request.getQuantity()
+                                )
+                        );
+
+        BigDecimal marketplaceFee =
+                Optional.ofNullable(
+                        request.getMarketplaceFee()
+                ).orElse(
+                        BigDecimal.ZERO
+                );
+
+        BigDecimal shippingCost =
+                Optional.ofNullable(
+                        request.getShippingCost()
+                ).orElse(
+                        BigDecimal.ZERO
+                );
+
+        BigDecimal extraCosts =
+                BigDecimal.ZERO;
+
+        BigDecimal netAmount =
+                grossAmount
+                        .subtract(
+                                marketplaceFee
+                        )
+                        .subtract(
+                                shippingCost
+                        );
+
+        BigDecimal totalProductCost =
                 product.getCostPrice()
                         .multiply(
                                 BigDecimal.valueOf(
@@ -114,22 +181,12 @@ public class SalesService {
                         );
 
         BigDecimal profit =
-                request.getUnitSalePrice()
-                        .multiply(
-                                BigDecimal.valueOf(
-                                        request.getQuantity()
-                                )
-                        )
-                        .subtract(productCost)
+                netAmount
                         .subtract(
-                                Optional.ofNullable(
-                                        request.getMarketplaceFee()
-                                ).orElse(BigDecimal.ZERO)
+                                totalProductCost
                         )
                         .subtract(
-                                Optional.ofNullable(
-                                        request.getShippingCost()
-                                ).orElse(BigDecimal.ZERO)
+                                extraCosts
                         );
 
         product.setStock(
@@ -137,47 +194,56 @@ public class SalesService {
                         request.getQuantity()
         );
 
-        fileStoreService.saveProducts(products);
+        fileStoreService.saveProducts(
+                products
+        );
 
         List<Sale> sales =
                 fileStoreService.loadSales();
 
-        Sale sale = new Sale(
-                request.getOrderId(),
+        Sale sale =
+                new Sale(
+                        request.getOrderId(),
 
-                request.getSku(),
+                        request.getSku(),
 
-                request.getProductName() == null ||
-                        request.getProductName()
-                                .trim()
-                                .isEmpty()
-                        ? product.getName()
-                        : request.getProductName(),
+                        request.getProductName() == null ||
+                                request.getProductName()
+                                        .trim()
+                                        .isEmpty()
+                                ? product.getName()
+                                : request.getProductName(),
 
-                Marketplace.MERCADO_LIVRE,
+                        Marketplace.MERCADO_LIVRE,
 
-                request.getQuantity(),
+                        request.getQuantity(),
 
-                request.getUnitSalePrice(),
+                        grossAmount,
 
-                productCost,
+                        netAmount,
 
-                Optional.ofNullable(
-                        request.getMarketplaceFee()
-                ).orElse(BigDecimal.ZERO),
+                        request.getUnitSalePrice(),
 
-                Optional.ofNullable(
-                        request.getShippingCost()
-                ).orElse(BigDecimal.ZERO),
+                        totalProductCost,
 
-                profit,
+                        extraCosts,
 
-                LocalDateTime.now()
+                        marketplaceFee,
+
+                        shippingCost,
+
+                        profit,
+
+                        LocalDateTime.now()
+                );
+
+        sales.add(
+                sale
         );
 
-        sales.add(sale);
-
-        fileStoreService.saveSales(sales);
+        fileStoreService.saveSales(
+                sales
+        );
 
         return sale;
     }
@@ -197,16 +263,39 @@ public class SalesService {
             BigDecimal shippingCost
     ) {
 
-        SaleRequest req = new SaleRequest();
+        SaleRequest req =
+                new SaleRequest();
 
-        req.setOrderId(orderId);
-        req.setSku(sku);
-        req.setProductName(productName);
-        req.setQuantity(quantity);
-        req.setUnitSalePrice(unitPrice);
-        req.setMarketplaceFee(marketplaceFee);
-        req.setShippingCost(shippingCost);
+        req.setOrderId(
+                orderId
+        );
 
-        registerSale(req);
+        req.setSku(
+                sku
+        );
+
+        req.setProductName(
+                productName
+        );
+
+        req.setQuantity(
+                quantity
+        );
+
+        req.setUnitSalePrice(
+                unitPrice
+        );
+
+        req.setMarketplaceFee(
+                marketplaceFee
+        );
+
+        req.setShippingCost(
+                shippingCost
+        );
+
+        registerSale(
+                req
+        );
     }
 }

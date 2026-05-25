@@ -3,6 +3,8 @@ package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
+import br.com.vendas.mlfinanceiro.domain.StockMovement;
+import br.com.vendas.mlfinanceiro.domain.StockMovementType;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResult;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderItem;
@@ -11,6 +13,7 @@ import br.com.vendas.mlfinanceiro.service.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -45,6 +48,9 @@ public class MercadoLivreImportService {
 
         List<Product> products =
                 fileStoreService.loadProducts();
+
+        List<StockMovement> stockMovements =
+                fileStoreService.loadStockMovements();
 
         int imported = 0;
 
@@ -104,6 +110,11 @@ public class MercadoLivreImportService {
                 sellerSku = "NO-SKU";
             }
 
+            sellerSku =
+                    normalizeSku(
+                            sellerSku
+                    );
+
             final String lookupSku =
                     sellerSku;
 
@@ -129,13 +140,19 @@ public class MercadoLivreImportService {
                             firstItem.getQuantity()
                     );
 
+            BigDecimal grossAmount =
+                    detail.getTotal_amount();
+
+            sale.setGrossAmount(
+                    grossAmount
+            );
+
             BigDecimal unitPrice =
-                    detail.getTotal_amount()
-                            .divide(
-                                    quantity,
-                                    2,
-                                    BigDecimal.ROUND_HALF_UP
-                            );
+                    grossAmount.divide(
+                            quantity,
+                            2,
+                            BigDecimal.ROUND_HALF_UP
+                    );
 
             sale.setUnitSalePrice(
                     unitPrice
@@ -145,10 +162,11 @@ public class MercadoLivreImportService {
                     products.stream()
                             .filter(
                                     p -> p.getSku() != null
-                                            && p.getSku()
-                                            .equalsIgnoreCase(
-                                                    lookupSku
-                                            )
+                                            && normalizeSku(
+                                            p.getSku()
+                                    ).equalsIgnoreCase(
+                                            lookupSku
+                                    )
                             )
                             .findFirst()
                             .orElse(null);
@@ -161,6 +179,55 @@ public class MercadoLivreImportService {
 
                 productCost =
                         matchedProduct.getCostPrice();
+
+                Integer currentStock =
+                        matchedProduct.getStock();
+
+                if (currentStock == null) {
+
+                    currentStock = 0;
+                }
+
+                int newStock =
+                        currentStock -
+                                firstItem.getQuantity();
+
+                if (newStock < 0) {
+
+                    newStock = 0;
+                }
+
+                matchedProduct.setStock(
+                        newStock
+                );
+
+                StockMovement movement =
+                        new StockMovement();
+
+                movement.setSku(
+                        matchedProduct.getSku()
+                );
+
+                movement.setType(
+                        StockMovementType.SALE
+                );
+
+                movement.setQuantity(
+                        -firstItem.getQuantity()
+                );
+
+                movement.setReference(
+                        "ML_ORDER_" +
+                                detail.getId()
+                );
+
+                movement.setCreatedAt(
+                        LocalDateTime.now()
+                );
+
+                stockMovements.add(
+                        movement
+                );
             }
 
             sale.setProductCost(
@@ -181,18 +248,35 @@ public class MercadoLivreImportService {
                     BigDecimal.ZERO
             );
 
+            sale.setExtraCosts(
+                    BigDecimal.ZERO
+            );
+
+            BigDecimal netAmount =
+                    grossAmount
+                            .subtract(
+                                    marketplaceFee
+                            )
+                            .subtract(
+                                    sale.getShippingCost()
+                            );
+
+            sale.setNetAmount(
+                    netAmount
+            );
+
             BigDecimal totalProductCost =
                     productCost.multiply(
                             quantity
                     );
 
             sale.setProfit(
-                    detail.getTotal_amount()
-                            .subtract(
-                                    marketplaceFee
-                            )
+                    netAmount
                             .subtract(
                                     totalProductCost
+                            )
+                            .subtract(
+                                    sale.getExtraCosts()
                             )
             );
 
@@ -202,7 +286,9 @@ public class MercadoLivreImportService {
                     ).toLocalDateTime()
             );
 
-            sales.add(sale);
+            sales.add(
+                    sale
+            );
 
             imported++;
         }
@@ -211,6 +297,30 @@ public class MercadoLivreImportService {
                 sales
         );
 
+        fileStoreService.saveProducts(
+                products
+        );
+
+        fileStoreService.saveStockMovements(
+                stockMovements
+        );
+
         return imported;
+    }
+
+    private String normalizeSku(
+            String sku
+    ) {
+
+        if (sku == null) {
+
+            return "";
+        }
+
+        return sku
+                .trim()
+                .replaceAll("[^a-zA-Z0-9]", "")
+                .replaceFirst("^0+(?!$)", "")
+                .toUpperCase();
     }
 }
