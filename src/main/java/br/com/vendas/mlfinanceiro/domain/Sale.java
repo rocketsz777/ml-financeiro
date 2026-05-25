@@ -70,114 +70,170 @@ public class Sale {
     }
 
     public String getOrderId() {
+
         return orderId;
     }
 
-    public void setOrderId(String orderId) {
+    public void setOrderId(
+            String orderId
+    ) {
+
         this.orderId = orderId;
     }
 
     public String getSku() {
+
         return sku;
     }
 
-    public void setSku(String sku) {
+    public void setSku(
+            String sku
+    ) {
+
         this.sku = sku;
     }
 
     public String getProductName() {
+
         return productName;
     }
 
-    public void setProductName(String productName) {
+    public void setProductName(
+            String productName
+    ) {
+
         this.productName = productName;
     }
 
     public Marketplace getMarketplace() {
+
         return marketplace;
     }
 
-    public void setMarketplace(Marketplace marketplace) {
+    public void setMarketplace(
+            Marketplace marketplace
+    ) {
+
         this.marketplace = marketplace;
     }
 
     public int getQuantity() {
+
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(
+            int quantity
+    ) {
+
         this.quantity = quantity;
     }
 
     public BigDecimal getGrossAmount() {
+
         return grossAmount;
     }
 
-    public void setGrossAmount(BigDecimal grossAmount) {
+    public void setGrossAmount(
+            BigDecimal grossAmount
+    ) {
+
         this.grossAmount = grossAmount;
     }
 
     public BigDecimal getNetAmount() {
+
         return netAmount;
     }
 
-    public void setNetAmount(BigDecimal netAmount) {
+    public void setNetAmount(
+            BigDecimal netAmount
+    ) {
+
         this.netAmount = netAmount;
     }
 
     public BigDecimal getUnitSalePrice() {
+
         return unitSalePrice;
     }
 
-    public void setUnitSalePrice(BigDecimal unitSalePrice) {
+    public void setUnitSalePrice(
+            BigDecimal unitSalePrice
+    ) {
+
         this.unitSalePrice = unitSalePrice;
     }
 
     public BigDecimal getProductCost() {
+
         return productCost;
     }
 
-    public void setProductCost(BigDecimal productCost) {
+    public void setProductCost(
+            BigDecimal productCost
+    ) {
+
         this.productCost = productCost;
     }
 
     public BigDecimal getExtraCosts() {
+
         return extraCosts;
     }
 
-    public void setExtraCosts(BigDecimal extraCosts) {
+    public void setExtraCosts(
+            BigDecimal extraCosts
+    ) {
+
         this.extraCosts = extraCosts;
     }
 
     public BigDecimal getMarketplaceFee() {
+
         return marketplaceFee;
     }
 
-    public void setMarketplaceFee(BigDecimal marketplaceFee) {
+    public void setMarketplaceFee(
+            BigDecimal marketplaceFee
+    ) {
+
         this.marketplaceFee = marketplaceFee;
     }
 
     public BigDecimal getShippingCost() {
+
         return shippingCost;
     }
 
-    public void setShippingCost(BigDecimal shippingCost) {
+    public void setShippingCost(
+            BigDecimal shippingCost
+    ) {
+
         this.shippingCost = shippingCost;
     }
 
     public BigDecimal getProfit() {
+
         return profit;
     }
 
-    public void setProfit(BigDecimal profit) {
+    public void setProfit(
+            BigDecimal profit
+    ) {
+
         this.profit = profit;
     }
 
     public LocalDateTime getSoldAt() {
+
         return soldAt;
     }
 
-    public void setSoldAt(LocalDateTime soldAt) {
+    public void setSoldAt(
+            LocalDateTime soldAt
+    ) {
+
         this.soldAt = soldAt;
     }
 
@@ -189,7 +245,9 @@ public class Sale {
         }
 
         return unitSalePrice.multiply(
-                BigDecimal.valueOf(quantity)
+                BigDecimal.valueOf(
+                        quantity
+                )
         );
     }
 
@@ -211,49 +269,87 @@ public class Sale {
                 soldAt;
     }
 
-    public static Sale fromCsv(String line) {
+    public static Sale fromCsv(
+            String line
+    ) {
 
-        String[] p = line.split(";", -1);
+        String[] p =
+                line.split(";", -1);
 
         return new Sale(
                 emptyToNull(p[0]),
                 emptyToNull(p[1]),
                 emptyToNull(p[2]),
-                Marketplace.valueOf(p[3]),
-                Integer.parseInt(p[4]),
-                parseBigDecimal(p[5]),
-                parseBigDecimal(p[6]),
-                parseBigDecimal(p[7]),
-                parseBigDecimal(p[8]),
-                parseBigDecimal(p[9]),
-                parseBigDecimal(p[10]),
-                parseBigDecimal(p[11]),
-                parseBigDecimal(p[12]),
-                LocalDateTime.parse(p[13])
+                Marketplace.valueOf(
+                        p[3]
+                ),
+                Integer.parseInt(
+                        p[4]
+                ),
+                parseBigDecimal(
+                        p[5]
+                ),
+                parseBigDecimal(
+                        p[6]
+                ),
+                parseBigDecimal(
+                        p[7]
+                ),
+                parseBigDecimal(
+                        p[8]
+                ),
+                parseBigDecimal(
+                        p[9]
+                ),
+                parseBigDecimal(
+                        p[10]
+                ),
+                parseBigDecimal(
+                        p[11]
+                ),
+                parseBigDecimal(
+                        p[12]
+                ),
+                LocalDateTime.parse(
+                        p[13]
+                )
         );
     }
 
-    private static String safe(String v) {
+    private static String safe(
+            String value
+    ) {
 
-        if (v == null) {
+        if (value == null) {
 
             return "";
         }
 
-        return v.replace(";", ",");
+        return value.replace(
+                ";",
+                ","
+        );
     }
 
-    private static String emptyToNull(String v) {
+    private static String emptyToNull(
+            String value
+    ) {
 
-        if (v == null || v.trim().isEmpty()) {
+        if (value == null ||
+                value.trim().isEmpty()) {
 
             return null;
         }
 
-        return v.replace(",", ";");
+        return value.replace(
+                ",",
+                ";"
+        );
     }
 
-    private static BigDecimal parseBigDecimal(String value) {
+    private static BigDecimal parseBigDecimal(
+            String value
+    ) {
 
         if (value == null ||
                 value.trim().isEmpty() ||
@@ -262,6 +358,8 @@ public class Sale {
             return BigDecimal.ZERO;
         }
 
-        return new BigDecimal(value);
+        return new BigDecimal(
+                value
+        );
     }
 }

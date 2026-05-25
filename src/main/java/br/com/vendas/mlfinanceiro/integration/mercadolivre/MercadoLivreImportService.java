@@ -3,6 +3,8 @@ package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
+import br.com.vendas.mlfinanceiro.domain.StockMovement;
+import br.com.vendas.mlfinanceiro.domain.StockMovementType;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResult;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderItem;
@@ -11,6 +13,7 @@ import br.com.vendas.mlfinanceiro.service.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -45,6 +48,9 @@ public class MercadoLivreImportService {
 
         List<Product> products =
                 fileStoreService.loadProducts();
+
+        List<StockMovement> stockMovements =
+                fileStoreService.loadStockMovements();
 
         int imported = 0;
 
@@ -173,6 +179,55 @@ public class MercadoLivreImportService {
 
                 productCost =
                         matchedProduct.getCostPrice();
+
+                Integer currentStock =
+                        matchedProduct.getStock();
+
+                if (currentStock == null) {
+
+                    currentStock = 0;
+                }
+
+                int newStock =
+                        currentStock -
+                                firstItem.getQuantity();
+
+                if (newStock < 0) {
+
+                    newStock = 0;
+                }
+
+                matchedProduct.setStock(
+                        newStock
+                );
+
+                StockMovement movement =
+                        new StockMovement();
+
+                movement.setSku(
+                        matchedProduct.getSku()
+                );
+
+                movement.setType(
+                        StockMovementType.SALE
+                );
+
+                movement.setQuantity(
+                        -firstItem.getQuantity()
+                );
+
+                movement.setReference(
+                        "ML_ORDER_" +
+                                detail.getId()
+                );
+
+                movement.setCreatedAt(
+                        LocalDateTime.now()
+                );
+
+                stockMovements.add(
+                        movement
+                );
             }
 
             sale.setProductCost(
@@ -231,13 +286,23 @@ public class MercadoLivreImportService {
                     ).toLocalDateTime()
             );
 
-            sales.add(sale);
+            sales.add(
+                    sale
+            );
 
             imported++;
         }
 
         fileStoreService.saveSales(
                 sales
+        );
+
+        fileStoreService.saveProducts(
+                products
+        );
+
+        fileStoreService.saveStockMovements(
+                stockMovements
         );
 
         return imported;

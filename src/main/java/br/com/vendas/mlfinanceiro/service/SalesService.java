@@ -73,7 +73,9 @@ public class SalesService {
 
         } else {
 
-            products.add(product);
+            products.add(
+                    product
+            );
         }
 
         fileStoreService.saveProducts(
@@ -147,12 +149,19 @@ public class SalesService {
         BigDecimal marketplaceFee =
                 Optional.ofNullable(
                         request.getMarketplaceFee()
-                ).orElse(BigDecimal.ZERO);
+                ).orElse(
+                        BigDecimal.ZERO
+                );
 
         BigDecimal shippingCost =
                 Optional.ofNullable(
                         request.getShippingCost()
-                ).orElse(BigDecimal.ZERO);
+                ).orElse(
+                        BigDecimal.ZERO
+                );
+
+        BigDecimal extraCosts =
+                BigDecimal.ZERO;
 
         BigDecimal netAmount =
                 grossAmount
@@ -163,7 +172,7 @@ public class SalesService {
                                 shippingCost
                         );
 
-        BigDecimal productCost =
+        BigDecimal totalProductCost =
                 product.getCostPrice()
                         .multiply(
                                 BigDecimal.valueOf(
@@ -171,21 +180,18 @@ public class SalesService {
                                 )
                         );
 
-        BigDecimal extraCosts =
-                BigDecimal.ZERO;
-
         BigDecimal profit =
                 netAmount
                         .subtract(
-                                productCost
+                                totalProductCost
                         )
                         .subtract(
                                 extraCosts
                         );
 
         product.setStock(
-                product.getStock()
-                        - request.getQuantity()
+                product.getStock() -
+                        request.getQuantity()
         );
 
         fileStoreService.saveProducts(
@@ -195,42 +201,45 @@ public class SalesService {
         List<Sale> sales =
                 fileStoreService.loadSales();
 
-        Sale sale = new Sale(
-                request.getOrderId(),
+        Sale sale =
+                new Sale(
+                        request.getOrderId(),
 
-                request.getSku(),
+                        request.getSku(),
 
-                request.getProductName() == null ||
-                        request.getProductName()
-                                .trim()
-                                .isEmpty()
-                        ? product.getName()
-                        : request.getProductName(),
+                        request.getProductName() == null ||
+                                request.getProductName()
+                                        .trim()
+                                        .isEmpty()
+                                ? product.getName()
+                                : request.getProductName(),
 
-                Marketplace.MERCADO_LIVRE,
+                        Marketplace.MERCADO_LIVRE,
 
-                request.getQuantity(),
+                        request.getQuantity(),
 
-                grossAmount,
+                        grossAmount,
 
-                netAmount,
+                        netAmount,
 
-                request.getUnitSalePrice(),
+                        request.getUnitSalePrice(),
 
-                productCost,
+                        totalProductCost,
 
-                extraCosts,
+                        extraCosts,
 
-                marketplaceFee,
+                        marketplaceFee,
 
-                shippingCost,
+                        shippingCost,
 
-                profit,
+                        profit,
 
-                LocalDateTime.now()
+                        LocalDateTime.now()
+                );
+
+        sales.add(
+                sale
         );
-
-        sales.add(sale);
 
         fileStoreService.saveSales(
                 sales
@@ -257,14 +266,36 @@ public class SalesService {
         SaleRequest req =
                 new SaleRequest();
 
-        req.setOrderId(orderId);
-        req.setSku(sku);
-        req.setProductName(productName);
-        req.setQuantity(quantity);
-        req.setUnitSalePrice(unitPrice);
-        req.setMarketplaceFee(marketplaceFee);
-        req.setShippingCost(shippingCost);
+        req.setOrderId(
+                orderId
+        );
 
-        registerSale(req);
+        req.setSku(
+                sku
+        );
+
+        req.setProductName(
+                productName
+        );
+
+        req.setQuantity(
+                quantity
+        );
+
+        req.setUnitSalePrice(
+                unitPrice
+        );
+
+        req.setMarketplaceFee(
+                marketplaceFee
+        );
+
+        req.setShippingCost(
+                shippingCost
+        );
+
+        registerSale(
+                req
+        );
     }
 }
