@@ -14,24 +14,83 @@ public class ProductController {
 
     private final SalesService salesService;
 
-    public ProductController(SalesService salesService) {
-        this.salesService = salesService;
+    public ProductController(
+            SalesService salesService
+    ) {
+
+        this.salesService =
+                salesService;
     }
 
     @GetMapping
-    public List<Product> listar() {
-        return salesService.listProducts();
+    public ResponseEntity<List<Product>> listar() {
+
+        return ResponseEntity.ok(
+                salesService.listProducts()
+        );
     }
 
     @PostMapping
-    public Product salvar(@RequestBody ProductRequest request) {
-        Product p = new Product(request.getSku(), request.getMlItemId(), request.getName(), request.getCostPrice(), request.getStock());
-        return salesService.createOrUpdateProduct(p);
+    public ResponseEntity<Product> salvar(
+            @RequestBody ProductRequest request
+    ) {
+
+        Product product =
+                new Product(
+                        request.getSku(),
+                        request.getMlItemId(),
+                        request.getName(),
+                        request.getCostPrice(),
+                        request.getStock()
+                );
+
+        Product saved =
+                salesService
+                        .createOrUpdateProduct(
+                                product
+                        );
+
+        return ResponseEntity.ok(
+                saved
+        );
+    }
+
+    @PutMapping("/{sku}")
+    public ResponseEntity<Product> atualizar(
+            @PathVariable String sku,
+            @RequestBody ProductRequest request
+    ) {
+
+        Product product =
+                new Product(
+                        sku,
+                        request.getMlItemId(),
+                        request.getName(),
+                        request.getCostPrice(),
+                        request.getStock()
+                );
+
+        Product updated =
+                salesService
+                        .createOrUpdateProduct(
+                                product
+                        );
+
+        return ResponseEntity.ok(
+                updated
+        );
     }
 
     @DeleteMapping("/{sku}")
-    public ResponseEntity<Void> excluir(@PathVariable String sku) {
-        salesService.deleteProduct(sku);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> excluir(
+            @PathVariable String sku
+    ) {
+
+        salesService.deleteProduct(
+                sku
+        );
+
+        return ResponseEntity.noContent()
+                .build();
     }
 }

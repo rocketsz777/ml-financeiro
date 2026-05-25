@@ -105,10 +105,10 @@ public class MercadoLivreImportService {
             }
 
             final String lookupSku =
-                    sellerSku;
+                    sellerSku.trim();
 
             sale.setSku(
-                    sellerSku
+                    lookupSku
             );
 
             sale.setProductName(
@@ -146,6 +146,7 @@ public class MercadoLivreImportService {
                             .filter(
                                     p -> p.getSku() != null
                                             && p.getSku()
+                                            .trim()
                                             .equalsIgnoreCase(
                                                     lookupSku
                                             )

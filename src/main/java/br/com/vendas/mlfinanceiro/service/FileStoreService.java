@@ -70,7 +70,7 @@ public class FileStoreService {
 
             Files.write(
                     salesFile,
-                    "orderId;sku;productName;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
+                    "orderId;sku;productName;marketplace;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
                             .getBytes(StandardCharsets.UTF_8),
                     StandardOpenOption.CREATE
             );
@@ -206,7 +206,7 @@ public class FileStoreService {
 
             StringBuilder sb =
                     new StringBuilder(
-                            "orderId;sku;productName;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
+                            "orderId;sku;productName;marketplace;quantity;unitSalePrice;productCost;marketplaceFee;shippingCost;profit;soldAt\n"
                     );
 
             for (Sale s : sales) {
