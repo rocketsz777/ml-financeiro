@@ -1,21 +1,30 @@
 package br.com.vendas.mlfinanceiro.integration.shopee;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class ShopeeClient {
 
-    public void authenticate() {
+    private final RestTemplate restTemplate;
 
-        System.out.println(
-                "Autenticando Shopee..."
-        );
+    public ShopeeClient() {
+
+        this.restTemplate =
+                new RestTemplate();
     }
 
-    public void getOrders() {
+    public String getOrders(
+            String accessToken,
+            String shopId
+    ) {
 
-        System.out.println(
-                "Buscando pedidos Shopee..."
+        String url =
+                "https://partner.shopeemobile.com/api/v2/order/get_order_list";
+
+        return restTemplate.getForObject(
+                url,
+                String.class
         );
     }
 }
