@@ -1,8 +1,10 @@
 package br.com.vendas.mlfinanceiro.controller;
 
+import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.service.DashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -22,9 +24,17 @@ public class DashboardController {
     }
 
     @GetMapping("/summary")
-    public Map<String, Object> summary() {
+    public Map<String, Object> summary(
+
+            @RequestParam(
+                    required = false
+            )
+            Marketplace marketplace
+    ) {
 
         return dashboardService
-                .getSummary();
+                .getSummary(
+                        marketplace
+                );
     }
 }

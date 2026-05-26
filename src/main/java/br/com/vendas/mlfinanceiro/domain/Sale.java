@@ -251,6 +251,28 @@ public class Sale {
         );
     }
 
+    public void recalculateProfit() {
+
+        BigDecimal net =
+                netAmount != null
+                        ? netAmount
+                        : BigDecimal.ZERO;
+
+        BigDecimal cost =
+                productCost != null
+                        ? productCost
+                        : BigDecimal.ZERO;
+
+        BigDecimal extras =
+                extraCosts != null
+                        ? extraCosts
+                        : BigDecimal.ZERO;
+
+        this.profit =
+                net.subtract(cost)
+                        .subtract(extras);
+    }
+
     public String toCsv() {
 
         return safe(orderId) + ";" +

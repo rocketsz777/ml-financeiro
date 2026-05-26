@@ -1,5 +1,6 @@
 package br.com.vendas.mlfinanceiro.service;
 
+import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +24,9 @@ public class DashboardService {
                 fileStoreService;
     }
 
-    public Map<String, Object> getSummary() {
+    public Map<String, Object> getSummary(
+            Marketplace marketplace
+    ) {
 
         List<Sale> sales =
                 fileStoreService.loadSales();
@@ -46,11 +49,17 @@ public class DashboardService {
         int unitsSold = 0;
 
         Map<String, Integer> topSellingItems =
-                new HashMap<String, Integer>();
+                new HashMap<>();
 
         for (Sale sale : sales) {
 
             if (sale.getSoldAt() == null) {
+
+                continue;
+            }
+
+            if (marketplace != null &&
+                    sale.getMarketplace() != marketplace) {
 
                 continue;
             }
@@ -115,19 +124,12 @@ public class DashboardService {
                         sale.getSku();
             }
 
-            Integer current =
-                    topSellingItems.get(
-                            productKey
-                    );
-
-            if (current == null) {
-
-                current = 0;
-            }
-
             topSellingItems.put(
                     productKey,
-                    current + sale.getQuantity()
+                    topSellingItems.getOrDefault(
+                            productKey,
+                            0
+                    ) + sale.getQuantity()
             );
         }
 
@@ -152,7 +154,14 @@ public class DashboardService {
         }
 
         Map<String, Object> summary =
-                new HashMap<String, Object>();
+                new HashMap<>();
+
+        summary.put(
+                "marketplace",
+                marketplace == null
+                        ? "ALL"
+                        : marketplace
+        );
 
         summary.put(
                 "weeklyRevenue",
