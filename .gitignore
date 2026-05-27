@@ -1,9 +1,29 @@
 target/
+
+node_modules/
+
 .idea/
+
+.vscode/
+
+dist/
+
 *.iml
+
+*.log
+
+.DS_Store
+
+.env
 
 src/main/resources/application-local.yml
 
 /data/*.xlsx
+
 /data/*.csv
-/data/*.csv
+
+/data/*.json
+
+/uploads/
+
+coverage/

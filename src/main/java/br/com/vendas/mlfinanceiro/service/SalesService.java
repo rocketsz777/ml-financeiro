@@ -4,6 +4,7 @@ import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
+import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,12 +17,20 @@ public class SalesService {
 
     private final FileStoreService fileStoreService;
 
+    private final SaleRepository saleRepository;
+
     public SalesService(
-            FileStoreService fileStoreService
+
+            FileStoreService fileStoreService,
+
+            SaleRepository saleRepository
     ) {
 
         this.fileStoreService =
                 fileStoreService;
+
+        this.saleRepository =
+                saleRepository;
     }
 
     // =========================================
@@ -42,12 +51,14 @@ public class SalesService {
 
         Optional<Product> existing =
                 products.stream()
+
                         .filter(
                                 p -> p.getSku()
                                         .equalsIgnoreCase(
                                                 product.getSku()
                                         )
                         )
+
                         .findFirst();
 
         if (existing.isPresent()) {
@@ -117,21 +128,26 @@ public class SalesService {
 
         Product product =
                 products.stream()
+
                         .filter(
                                 p -> p.getSku()
                                         .equalsIgnoreCase(
                                                 request.getSku()
                                         )
                         )
+
                         .findFirst()
+
                         .orElseThrow(
                                 () -> new RuntimeException(
                                         "Produto não encontrado"
                                 )
                         );
 
-        if (product.getStock() <
-                request.getQuantity()) {
+        if (
+                product.getStock() <
+                        request.getQuantity()
+        ) {
 
             throw new RuntimeException(
                     "Estoque insuficiente"
@@ -140,6 +156,7 @@ public class SalesService {
 
         BigDecimal grossAmount =
                 request.getUnitSalePrice()
+
                         .multiply(
                                 BigDecimal.valueOf(
                                         request.getQuantity()
@@ -165,84 +182,97 @@ public class SalesService {
 
         BigDecimal netAmount =
                 grossAmount
+
                         .subtract(
                                 marketplaceFee
                         )
+
                         .subtract(
                                 shippingCost
                         );
 
-        BigDecimal totalProductCost =
-                product.getCostPrice()
-                        .multiply(
-                                BigDecimal.valueOf(
-                                        request.getQuantity()
-                                )
-                        );
-
-        BigDecimal profit =
-                netAmount
-                        .subtract(
-                                totalProductCost
-                        )
-                        .subtract(
-                                extraCosts
-                        );
-
         product.setStock(
-                product.getStock() -
-                        request.getQuantity()
+
+                product.getStock()
+                        - request.getQuantity()
         );
 
         fileStoreService.saveProducts(
                 products
         );
 
-        List<Sale> sales =
-                fileStoreService.loadSales();
-
         Sale sale =
-                new Sale(
-                        request.getOrderId(),
+                new Sale();
 
-                        request.getSku(),
-
-                        request.getProductName() == null ||
-                                request.getProductName()
-                                        .trim()
-                                        .isEmpty()
-                                ? product.getName()
-                                : request.getProductName(),
-
-                        Marketplace.MERCADO_LIVRE,
-
-                        request.getQuantity(),
-
-                        grossAmount,
-
-                        netAmount,
-
-                        request.getUnitSalePrice(),
-
-                        totalProductCost,
-
-                        extraCosts,
-
-                        marketplaceFee,
-
-                        shippingCost,
-
-                        profit,
-
-                        LocalDateTime.now()
-                );
-
-        sales.add(
-                sale
+        sale.setOrderId(
+                request.getOrderId()
         );
 
-        fileStoreService.saveSales(
-                sales
+        sale.setSku(
+                request.getSku()
+        );
+
+        sale.setProductName(
+
+                request.getProductName() == null ||
+
+                        request.getProductName()
+                                .trim()
+                                .isEmpty()
+
+                        ?
+
+                        product.getName()
+
+                        :
+
+                        request.getProductName()
+        );
+
+        sale.setMarketplace(
+                Marketplace.MERCADO_LIVRE
+        );
+
+        sale.setQuantity(
+                request.getQuantity()
+        );
+
+        sale.setGrossAmount(
+                grossAmount
+        );
+
+        sale.setNetAmount(
+                netAmount
+        );
+
+        sale.setUnitSalePrice(
+                request.getUnitSalePrice()
+        );
+
+        sale.setProductCost(
+                product.getCostPrice()
+        );
+
+        sale.setExtraCosts(
+                extraCosts
+        );
+
+        sale.setMarketplaceFee(
+                marketplaceFee
+        );
+
+        sale.setShippingCost(
+                shippingCost
+        );
+
+        sale.calculateProfit();
+
+        sale.setSoldAt(
+                LocalDateTime.now()
+        );
+
+        saleRepository.save(
+                sale
         );
 
         return sale;
@@ -250,16 +280,23 @@ public class SalesService {
 
     public List<Sale> listSales() {
 
-        return fileStoreService.loadSales();
+        return saleRepository.findAll();
     }
 
     public void ingestMLOrder(
+
             String orderId,
+
             String sku,
+
             String productName,
+
             int quantity,
+
             BigDecimal unitPrice,
+
             BigDecimal marketplaceFee,
+
             BigDecimal shippingCost
     ) {
 
@@ -297,5 +334,10 @@ public class SalesService {
         registerSale(
                 req
         );
+    }
+
+    public List<Sale> findAll() {
+
+        return saleRepository.findAll();
     }
 }

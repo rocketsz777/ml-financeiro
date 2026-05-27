@@ -13,65 +13,98 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.Path;
 import java.time.YearMonth;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sales")
 public class SalesController {
 
     private final SalesService salesService;
+
     private final ReportService reportService;
 
     public SalesController(
+
             SalesService salesService,
+
             ReportService reportService
     ) {
 
-        this.salesService = salesService;
-        this.reportService = reportService;
+        this.salesService =
+                salesService;
+
+        this.reportService =
+                reportService;
     }
 
     @PostMapping
     public Sale registerSale(
-            @RequestBody SaleRequest request
+
+            @RequestBody
+            SaleRequest request
     ) {
 
-        return salesService.registerSale(request);
+        return salesService.registerSale(
+                request
+        );
+    }
+
+    @GetMapping
+    public List<Sale> findAll() {
+
+        return salesService.findAll();
     }
 
     @GetMapping("/summary")
     public MonthlySummaryResponse summary(
+
             @RequestParam int year,
+
             @RequestParam int month
     ) {
 
         return reportService.monthlySummary(
-                YearMonth.of(year, month)
+
+                YearMonth.of(
+                        year,
+                        month
+                )
         );
     }
 
     @GetMapping("/report")
     public ResponseEntity<FileSystemResource> report(
+
             @RequestParam int year,
+
             @RequestParam int month
     ) {
 
         Path file =
+
                 reportService.generateExcel(
-                        YearMonth.of(year, month)
+
+                        YearMonth.of(
+                                year,
+                                month
+                        )
                 );
 
         FileSystemResource resource =
                 new FileSystemResource(file);
 
         return ResponseEntity.ok()
+
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=" +
                                 file.getFileName()
                 )
+
                 .contentType(
                         MediaType.APPLICATION_OCTET_STREAM
                 )
+
                 .body(resource);
     }
 }
