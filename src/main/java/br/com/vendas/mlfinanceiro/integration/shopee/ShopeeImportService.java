@@ -95,7 +95,7 @@ public class ShopeeImportService {
                 BigDecimal.ZERO
         );
 
-        sale.recalculateProfit();
+        sale.calculateProfit();
 
         sale.setSoldAt(
                 LocalDateTime.now()

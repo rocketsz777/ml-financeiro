@@ -44,7 +44,7 @@ public class ReportService {
 
         BigDecimal totalRevenue =
                 sales.stream()
-                        .map(Sale::grossRevenue)
+                        .map(Sale::getGrossAmount)
                         .reduce(
                                 BigDecimal.ZERO,
                                 BigDecimal::add
@@ -121,7 +121,7 @@ public class ReportService {
             item.setRevenue(
                     list.stream()
                             .map(
-                                    Sale::grossRevenue
+                                    Sale::getGrossAmount
                             )
                             .reduce(
                                     BigDecimal.ZERO,

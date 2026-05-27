@@ -1,15 +1,17 @@
 package br.com.vendas.mlfinanceiro.service;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
+import br.com.vendas.mlfinanceiro.domain.PeriodFilter;
 import br.com.vendas.mlfinanceiro.domain.Sale;
+import br.com.vendas.mlfinanceiro.dto.DashboardResponse;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
@@ -24,8 +26,9 @@ public class DashboardService {
                 fileStoreService;
     }
 
-    public Map<String, Object> getSummary(
-            Marketplace marketplace
+    public DashboardResponse getSummary(
+            Marketplace marketplace,
+            PeriodFilter period
     ) {
 
         List<Sale> sales =
@@ -34,114 +37,120 @@ public class DashboardService {
         LocalDateTime now =
                 LocalDateTime.now();
 
-        BigDecimal weeklyRevenue =
-                BigDecimal.ZERO;
+        LocalDateTime limitDate =
 
-        BigDecimal monthlyRevenue =
-                BigDecimal.ZERO;
+                period == PeriodFilter.WEEK
 
-        BigDecimal totalProfit =
-                BigDecimal.ZERO;
+                        ?
+
+                        now.minusDays(7)
+
+                        :
+
+                        now.minusDays(30);
+
+        List<Sale> filteredSales =
+
+                sales.stream()
+
+                        .filter(
+                                sale -> sale.getSoldAt() != null
+                        )
+
+                        .filter(
+                                sale ->
+                                        sale.getSoldAt()
+                                                .isAfter(limitDate)
+                        )
+
+                        .filter(
+                                sale -> marketplace == null
+                                        || sale.getMarketplace() == marketplace
+                        )
+
+                        .collect(
+                                Collectors.toList()
+                        );
+
+        BigDecimal totalRevenue =
+
+                filteredSales.stream()
+
+                        .map(
+                                Sale::getGrossAmount
+                        )
+
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
 
         BigDecimal totalCost =
-                BigDecimal.ZERO;
 
-        int unitsSold = 0;
+                filteredSales.stream()
 
-        Map<String, Integer> topSellingItems =
-                new HashMap<>();
+                        .map(
+                                sale ->
 
-        for (Sale sale : sales) {
+                                        sale.getProductCost() != null
 
-            if (sale.getSoldAt() == null) {
+                                                ?
 
-                continue;
-            }
+                                                sale.getProductCost()
+                                                        .multiply(
+                                                                BigDecimal.valueOf(
+                                                                        sale.getQuantity()
+                                                                )
+                                                        )
 
-            if (marketplace != null &&
-                    sale.getMarketplace() != marketplace) {
+                                                :
 
-                continue;
-            }
+                                                BigDecimal.ZERO
+                        )
 
-            BigDecimal gross =
-                    sale.getGrossAmount() != null
-                            ? sale.getGrossAmount()
-                            : BigDecimal.ZERO;
-
-            BigDecimal profit =
-                    sale.getProfit() != null
-                            ? sale.getProfit()
-                            : BigDecimal.ZERO;
-
-            BigDecimal productCost =
-                    sale.getProductCost() != null
-                            ? sale.getProductCost()
-                            : BigDecimal.ZERO;
-
-            totalProfit =
-                    totalProfit.add(
-                            profit
-                    );
-
-            totalCost =
-                    totalCost.add(
-                            productCost
-                    );
-
-            unitsSold +=
-                    sale.getQuantity();
-
-            if (sale.getSoldAt()
-                    .isAfter(
-                            now.minusDays(7)
-                    )) {
-
-                weeklyRevenue =
-                        weeklyRevenue.add(
-                                gross
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
                         );
-            }
 
-            if (sale.getSoldAt()
-                    .isAfter(
-                            now.minusDays(30)
-                    )) {
+        BigDecimal totalProfit =
 
-                monthlyRevenue =
-                        monthlyRevenue.add(
-                                gross
+                filteredSales.stream()
+
+                        .map(
+                                sale -> sale.getProfit() != null
+                                        ? sale.getProfit()
+                                        : BigDecimal.ZERO
+                        )
+
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
                         );
-            }
 
-            String productKey =
-                    sale.getProductName();
+        int unitsSold =
 
-            if (productKey == null ||
-                    productKey.trim().isEmpty()) {
+                filteredSales.stream()
 
-                productKey =
-                        sale.getSku();
-            }
+                        .mapToInt(
+                                Sale::getQuantity
+                        )
 
-            topSellingItems.put(
-                    productKey,
-                    topSellingItems.getOrDefault(
-                            productKey,
-                            0
-                    ) + sale.getQuantity()
-            );
-        }
+                        .sum();
 
         BigDecimal profitMargin =
                 BigDecimal.ZERO;
 
-        if (totalCost.compareTo(
-                BigDecimal.ZERO
-        ) > 0) {
+        if (
+                totalCost.compareTo(
+                        BigDecimal.ZERO
+                ) > 0
+        ) {
 
             profitMargin =
-                    totalProfit.multiply(
+
+                    totalProfit
+                            .multiply(
                                     BigDecimal.valueOf(
                                             100
                                     )
@@ -153,46 +162,161 @@ public class DashboardService {
                             );
         }
 
-        Map<String, Object> summary =
-                new HashMap<>();
+        Map<String, Integer> topSellingItems =
+                buildTopSellingItems(
+                        filteredSales
+                );
 
-        summary.put(
-                "marketplace",
+        Map<String, BigDecimal> topProfitableItems =
+                buildTopProfitableItems(
+                        filteredSales
+                );
+
+        DashboardResponse response =
+                new DashboardResponse();
+
+        response.setMarketplace(
                 marketplace == null
                         ? "ALL"
-                        : marketplace
+                        : marketplace.name()
         );
 
-        summary.put(
-                "weeklyRevenue",
-                weeklyRevenue
+        response.setTotalRevenue(
+                totalRevenue
         );
 
-        summary.put(
-                "monthlyRevenue",
-                monthlyRevenue
+        response.setTotalCost(
+                totalCost
         );
 
-        summary.put(
-                "totalProfit",
+        response.setTotalProfit(
                 totalProfit
         );
 
-        summary.put(
-                "unitsSold",
+        response.setUnitsSold(
                 unitsSold
         );
 
-        summary.put(
-                "topSellingItems",
-                topSellingItems
-        );
-
-        summary.put(
-                "profitMargin",
+        response.setProfitMargin(
                 profitMargin
         );
 
-        return summary;
+        response.setTopSellingItems(
+                topSellingItems
+        );
+
+        response.setTopProfitableItems(
+                topProfitableItems
+        );
+
+        return response;
+    }
+
+    private Map<String, Integer> buildTopSellingItems(
+            List<Sale> filteredSales
+    ) {
+
+        return filteredSales.stream()
+
+                .collect(
+                        Collectors.groupingBy(
+
+                                sale ->
+
+                                        sale.getProductName() != null
+                                                && !sale.getProductName()
+                                                .trim()
+                                                .isEmpty()
+
+                                                ?
+
+                                                sale.getProductName()
+
+                                                :
+
+                                                sale.getSku(),
+
+                                Collectors.summingInt(
+                                        Sale::getQuantity
+                                )
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .sorted(
+                        Map.Entry.<String, Integer>
+                                        comparingByValue()
+
+                                .reversed()
+                )
+
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue,
+                                (a, b) -> a,
+                                java.util.LinkedHashMap::new
+                        )
+                );
+    }
+
+    private Map<String, BigDecimal> buildTopProfitableItems(
+            List<Sale> filteredSales
+    ) {
+
+        return filteredSales.stream()
+
+                .collect(
+                        Collectors.groupingBy(
+
+                                sale ->
+
+                                        sale.getProductName() != null
+                                                && !sale.getProductName()
+                                                .trim()
+                                                .isEmpty()
+
+                                                ?
+
+                                                sale.getProductName()
+
+                                                :
+
+                                                sale.getSku(),
+
+                                Collectors.reducing(
+                                        BigDecimal.ZERO,
+
+                                        sale -> sale.getProfit() != null
+                                                ? sale.getProfit()
+                                                : BigDecimal.ZERO,
+
+                                        BigDecimal::add
+                                )
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .sorted(
+                        Map.Entry.<String, BigDecimal>
+                                        comparingByValue()
+
+                                .reversed()
+                )
+
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue,
+                                (a, b) -> a,
+                                java.util.LinkedHashMap::new
+                        )
+                );
     }
 }

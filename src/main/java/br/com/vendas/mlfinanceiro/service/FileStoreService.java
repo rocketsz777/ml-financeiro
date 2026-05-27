@@ -172,7 +172,7 @@ public class FileStoreService {
                 new ArrayList<String>();
 
         lines.add(
-                "orderId;sku;productName;marketplace;quantity;grossAmount;netAmount;unitSalePrice;productCost;extraCosts;marketplaceFee;shippingCost;profit;soldAt"
+                "orderId;sku;productName;marketplace;quantity;grossAmount;netAmount;unitSalePrice;productCost;extraCosts;marketplaceFee;shippingCost;profit;profitMargin;soldAt"
         );
 
         for (Sale sale : sales) {
