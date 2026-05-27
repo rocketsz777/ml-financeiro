@@ -24,6 +24,12 @@ spring:
 mercadolivre:
   client-id: ${MERCADOLIVRE_CLIENT_ID}
   client-secret: ${MERCADOLIVRE_CLIENT_SECRET}
+  redirect-uri: ${MERCADOLIVRE_REDIRECT_URI:https://rocket-imports-api.onrender.com/oauth/mercadolivre/callback}
+
+shopee:
+  partner-id: ${SHOPEE_PARTNER_ID:0000}
+  partner-key: ${SHOPEE_PARTNER_KEY:0000}
+  redirect-uri: ${SHOPEE_REDIRECT_URI:https://rocket-imports-api.onrender.com/shopee/callback}
 
 app:
   data-dir: ./data
