@@ -1,10 +1,11 @@
-package br.com.vendas.mlfinanceiro.integration.mercadolivre;
+package br.com.vendas.mlfinanceiro.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.domain.StockMovementType;
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.MercadoLivreClient;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResult;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderItem;
