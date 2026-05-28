@@ -1,8 +1,35 @@
 server:
   port: 8080
 
+spring:
+  profiles:
+    active: local
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+
 mercadolivre:
-  access-token: SEU_ACCESS_TOKEN_AQUI
+  client-id: ${MERCADOLIVRE_CLIENT_ID}
+  client-secret: ${MERCADOLIVRE_CLIENT_SECRET}
+  redirect-uri: ${MERCADOLIVRE_REDIRECT_URI:https://rocket-imports-api.onrender.com/oauth/mercadolivre/callback}
+
+shopee:
+  partner-id: ${SHOPEE_PARTNER_ID:0000}
+  partner-key: ${SHOPEE_PARTNER_KEY:0000}
+  redirect-uri: ${SHOPEE_REDIRECT_URI:https://rocket-imports-api.onrender.com/shopee/callback}
 
 app:
   data-dir: ./data
