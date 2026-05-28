@@ -1,6 +1,7 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -12,10 +13,19 @@ public class MercadoLivreTokenStore {
     private static final String FILE_NAME =
             "mercadolivre-token.json";
 
-    private final ObjectMapper objectMapper =
-            new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     private MercadoLivreTokenResponse token;
+
+    public MercadoLivreTokenStore() {
+
+        this.objectMapper =
+                new ObjectMapper();
+
+        this.objectMapper.registerModule(
+                new JavaTimeModule()
+        );
+    }
 
     public void save(
             MercadoLivreTokenResponse token
