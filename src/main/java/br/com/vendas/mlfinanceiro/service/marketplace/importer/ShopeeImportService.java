@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.integration.shopee;
+package br.com.vendas.mlfinanceiro.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
