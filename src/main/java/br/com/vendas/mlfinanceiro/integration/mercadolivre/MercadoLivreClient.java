@@ -11,29 +11,34 @@ public class MercadoLivreClient {
 
     private final MercadoLivreTokenStore tokenStore;
 
+    private final MercadoLivreAuthService authService;
+
     private final WebClient webClient;
 
     public MercadoLivreClient(
-            MercadoLivreTokenStore tokenStore
+            MercadoLivreTokenStore tokenStore,
+            MercadoLivreAuthService authService
     ) {
 
-        this.tokenStore = tokenStore;
+        this.tokenStore =
+                tokenStore;
 
-        this.webClient = WebClient.builder()
-                .baseUrl(
-                        "https://api.mercadolibre.com"
-                )
-                .build();
+        this.authService =
+                authService;
+
+        this.webClient =
+                WebClient.builder()
+                        .baseUrl(
+                                "https://api.mercadolibre.com"
+                        )
+                        .build();
     }
 
     public String getMyUserData() {
 
-        if (!tokenStore.hasToken()) {
+        authService.refreshTokenIfNeeded();
 
-            throw new RuntimeException(
-                    "Mercado Livre não autenticado"
-            );
-        }
+        validateAuthentication();
 
         String accessToken =
                 tokenStore.getToken()
@@ -52,12 +57,9 @@ public class MercadoLivreClient {
 
     public MercadoLivreOrderResponse getOrders() {
 
-        if (!tokenStore.hasToken()) {
+        authService.refreshTokenIfNeeded();
 
-            throw new RuntimeException(
-                    "Mercado Livre não autenticado"
-            );
-        }
+        validateAuthentication();
 
         String accessToken =
                 tokenStore.getToken()
@@ -81,16 +83,14 @@ public class MercadoLivreClient {
                 )
                 .block();
     }
+
     public MercadoLivreOrderDetail getOrderDetail(
             Long orderId
     ) {
 
-        if (!tokenStore.hasToken()) {
+        authService.refreshTokenIfNeeded();
 
-            throw new RuntimeException(
-                    "Mercado Livre não autenticado"
-            );
-        }
+        validateAuthentication();
 
         String accessToken =
                 tokenStore.getToken()
@@ -109,5 +109,15 @@ public class MercadoLivreClient {
                         MercadoLivreOrderDetail.class
                 )
                 .block();
+    }
+
+    private void validateAuthentication() {
+
+        if (!tokenStore.hasToken()) {
+
+            throw new RuntimeException(
+                    "Mercado Livre não autenticado"
+            );
+        }
     }
 }
