@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MercadoLivreOAuthController {
 
     private final MercadoLivreAuthService authService;
+
     private final MercadoLivreTokenStore tokenStore;
 
     public MercadoLivreOAuthController(
@@ -15,14 +16,18 @@ public class MercadoLivreOAuthController {
             MercadoLivreTokenStore tokenStore
     ) {
 
-        this.authService = authService;
-        this.tokenStore = tokenStore;
+        this.authService =
+                authService;
+
+        this.tokenStore =
+                tokenStore;
     }
 
     @GetMapping("/oauth/mercadolivre/login")
     public String login() {
 
-        return authService.generateAuthorizationUrl();
+        return authService
+                .generateAuthorizationUrl();
     }
 
     @GetMapping("/oauth/mercadolivre/callback")
@@ -31,11 +36,14 @@ public class MercadoLivreOAuthController {
     ) {
 
         MercadoLivreTokenResponse token =
-                authService.exchangeCodeForToken(
-                        code
-                );
+                authService
+                        .exchangeCodeForToken(
+                                code
+                        );
 
-        tokenStore.save(token);
+        tokenStore.save(
+                token
+        );
 
         return "Mercado Livre conectado com sucesso!";
     }
