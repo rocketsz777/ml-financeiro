@@ -107,7 +107,7 @@ public class MercadoLivreImportService {
             if (sellerSku == null ||
                     sellerSku.trim().isEmpty()) {
 
-                sellerSku = "NO-SKU";
+                sellerSku = "0";
             }
 
             sellerSku =
@@ -158,18 +158,23 @@ public class MercadoLivreImportService {
                     unitPrice
             );
 
-            Product matchedProduct =
-                    products.stream()
-                            .filter(
-                                    p -> p.getSku() != null
-                                            && normalizeSku(
-                                            p.getSku()
-                                    ).equalsIgnoreCase(
-                                            lookupSku
-                                    )
-                            )
-                            .findFirst()
-                            .orElse(null);
+            Product matchedProduct = null;
+
+            if (!lookupSku.equals("0")) {
+
+                matchedProduct =
+                        products.stream()
+                                .filter(
+                                        p -> p.getSku() != null
+                                                && normalizeSku(
+                                                p.getSku()
+                                        ).equalsIgnoreCase(
+                                                lookupSku
+                                        )
+                                )
+                                .findFirst()
+                                .orElse(null);
+            }
 
             BigDecimal productCost =
                     BigDecimal.ZERO;
