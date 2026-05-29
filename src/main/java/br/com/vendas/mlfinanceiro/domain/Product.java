@@ -1,49 +1,100 @@
 package br.com.vendas.mlfinanceiro.domain;
 
+import javax.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "products")
 public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(
+            nullable = false,
+            unique = true
+    )
     private String sku;
+
     private String mlItemId;
+
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private BigDecimal costPrice;
-    private int stock;
 
-    public Product() {}
+    @Column(nullable = false)
+    private Integer stockQuantity;
 
-    public Product(String sku, String mlItemId, String name, BigDecimal costPrice, int stock) {
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+
+        updatedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
         this.sku = sku;
+    }
+
+    public String getMlItemId() {
+        return mlItemId;
+    }
+
+    public void setMlItemId(String mlItemId) {
         this.mlItemId = mlItemId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
         this.name = name;
+    }
+
+    public BigDecimal getCostPrice() {
+        return costPrice;
+    }
+
+    public void setCostPrice(BigDecimal costPrice) {
         this.costPrice = costPrice;
-        this.stock = stock;
     }
 
-    public String getSku() { return sku; }
-    public void setSku(String sku) { this.sku = sku; }
-    public String getMlItemId() { return mlItemId; }
-    public void setMlItemId(String mlItemId) { this.mlItemId = mlItemId; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public BigDecimal getCostPrice() { return costPrice; }
-    public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
-    public int getStock() { return stock; }
-    public void setStock(int stock) { this.stock = stock; }
-
-    public String toCsv() {
-        return escape(sku) + ";" + escape(mlItemId) + ";" + escape(name) + ";" + costPrice + ";" + stock;
+    public Integer getStockQuantity() {
+        return stockQuantity;
     }
 
-    public static Product fromCsv(String line) {
-        String[] p = line.split(";", -1);
-        return new Product(unescape(p[0]), unescape(p[1]), unescape(p[2]), new BigDecimal(p[3]), Integer.parseInt(p[4]));
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
     }
 
-    private static String escape(String v) {
-        return v == null ? "" : v.replace(";", "\u003B");
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    private static String unescape(String v) {
-        return v == null ? null : v.replace("\u003B", ";");
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

@@ -45,8 +45,8 @@ public class StockService {
                                 )
                         );
 
-        product.setStock(
-                product.getStock() +
+        product.setStockQuantity(
+                product.getStockQuantity() +
                         request.getQuantity()
         );
 

@@ -2,7 +2,7 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.dto.ProductRequest;
-import br.com.vendas.mlfinanceiro.service.sales.SalesService;
+import br.com.vendas.mlfinanceiro.service.product.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,21 +12,33 @@ import java.util.List;
 @RequestMapping("/api/produtos")
 public class ProductController {
 
-    private final SalesService salesService;
+    private final ProductService productService;
 
     public ProductController(
-            SalesService salesService
+            ProductService productService
     ) {
 
-        this.salesService =
-                salesService;
+        this.productService =
+                productService;
     }
 
     @GetMapping
     public ResponseEntity<List<Product>> listar() {
 
         return ResponseEntity.ok(
-                salesService.listProducts()
+                productService.findAll()
+        );
+    }
+
+    @GetMapping("/{sku}")
+    public ResponseEntity<Product> buscar(
+            @PathVariable String sku
+    ) {
+
+        return ResponseEntity.ok(
+                productService.findBySku(
+                        sku
+                )
         );
     }
 
@@ -36,22 +48,32 @@ public class ProductController {
     ) {
 
         Product product =
-                new Product(
-                        request.getSku(),
-                        request.getMlItemId(),
-                        request.getName(),
-                        request.getCostPrice(),
-                        request.getStock()
-                );
+                new Product();
 
-        Product saved =
-                salesService
-                        .createOrUpdateProduct(
-                                product
-                        );
+        product.setSku(
+                request.getSku()
+        );
+
+        product.setMlItemId(
+                request.getMlItemId()
+        );
+
+        product.setName(
+                request.getName()
+        );
+
+        product.setCostPrice(
+                request.getCostPrice()
+        );
+
+        product.setStockQuantity(
+                request.getStockQuantity()
+        );
 
         return ResponseEntity.ok(
-                saved
+                productService.save(
+                        product
+                )
         );
     }
 
@@ -62,22 +84,30 @@ public class ProductController {
     ) {
 
         Product product =
-                new Product(
-                        sku,
-                        request.getMlItemId(),
-                        request.getName(),
-                        request.getCostPrice(),
-                        request.getStock()
+                productService.findBySku(
+                        sku
                 );
 
-        Product updated =
-                salesService
-                        .createOrUpdateProduct(
-                                product
-                        );
+        product.setMlItemId(
+                request.getMlItemId()
+        );
+
+        product.setName(
+                request.getName()
+        );
+
+        product.setCostPrice(
+                request.getCostPrice()
+        );
+
+        product.setStockQuantity(
+                request.getStockQuantity()
+        );
 
         return ResponseEntity.ok(
-                updated
+                productService.save(
+                        product
+                )
         );
     }
 
@@ -86,11 +116,39 @@ public class ProductController {
             @PathVariable String sku
     ) {
 
-        salesService.deleteProduct(
+        productService.delete(
                 sku
         );
 
         return ResponseEntity.noContent()
                 .build();
+    }
+
+    @PostMapping("/{sku}/add-stock")
+    public ResponseEntity<Product> addStock(
+            @PathVariable String sku,
+            @RequestParam Integer quantity
+    ) {
+
+        return ResponseEntity.ok(
+                productService.addStock(
+                        sku,
+                        quantity
+                )
+        );
+    }
+
+    @PostMapping("/{sku}/remove-stock")
+    public ResponseEntity<Product> removeStock(
+            @PathVariable String sku,
+            @RequestParam Integer quantity
+    ) {
+
+        return ResponseEntity.ok(
+                productService.removeStock(
+                        sku,
+                        quantity
+                )
+        );
     }
 }

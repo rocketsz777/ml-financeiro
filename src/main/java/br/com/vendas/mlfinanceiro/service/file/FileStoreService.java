@@ -16,9 +16,6 @@ import java.util.stream.Collectors;
 @Service
 public class FileStoreService {
 
-    private static final String PRODUCTS_FILE =
-            "produtos.csv";
-
     private static final String SALES_FILE =
             "vendas.csv";
 
@@ -52,78 +49,25 @@ public class FileStoreService {
         return dataDir;
     }
 
+    // =========================================
+    // PRODUTOS
+    // =========================================
+
     public List<Product> loadProducts() {
 
-        Path path =
-                dataDir.resolve(
-                        PRODUCTS_FILE
-                );
-
-        if (!Files.exists(path)) {
-
-            return new ArrayList<Product>();
-        }
-
-        try {
-
-            return Files.readAllLines(path)
-                    .stream()
-                    .skip(1)
-                    .filter(
-                            line -> !line.trim().isEmpty()
-                    )
-                    .map(
-                            Product::fromCsv
-                    )
-                    .collect(Collectors.toList());
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Erro ao carregar produtos",
-                    e
-            );
-        }
+        return new ArrayList<Product>();
     }
 
     public void saveProducts(
             List<Product> products
     ) {
 
-        Path path =
-                dataDir.resolve(
-                        PRODUCTS_FILE
-                );
-
-        List<String> lines =
-                new ArrayList<String>();
-
-        lines.add(
-                "sku;mlItemId;name;costPrice;stock"
-        );
-
-        for (Product product : products) {
-
-            lines.add(
-                    product.toCsv()
-            );
-        }
-
-        try {
-
-            Files.write(
-                    path,
-                    lines
-            );
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Erro ao salvar produtos",
-                    e
-            );
-        }
+        // Produtos migrados para PostgreSQL
     }
+
+    // =========================================
+    // VENDAS
+    // =========================================
 
     public List<Sale> loadSales() {
 
@@ -197,6 +141,10 @@ public class FileStoreService {
             );
         }
     }
+
+    // =========================================
+    // MOVIMENTAÇÕES DE ESTOQUE
+    // =========================================
 
     public List<StockMovement> loadStockMovements() {
 

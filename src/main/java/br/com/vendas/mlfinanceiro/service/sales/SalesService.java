@@ -79,8 +79,8 @@ public class SalesService {
                     product.getCostPrice()
             );
 
-            current.setStock(
-                    product.getStock()
+            current.setStockQuantity(
+                    product.getStockQuantity()
             );
 
         } else {
@@ -146,7 +146,7 @@ public class SalesService {
                         );
 
         if (
-                product.getStock() <
+                product.getStockQuantity() <
                         request.getQuantity()
         ) {
 
@@ -192,9 +192,9 @@ public class SalesService {
                                 shippingCost
                         );
 
-        product.setStock(
+        product.setStockQuantity(
 
-                product.getStock()
+                product.getStockQuantity()
                         - request.getQuantity()
         );
 

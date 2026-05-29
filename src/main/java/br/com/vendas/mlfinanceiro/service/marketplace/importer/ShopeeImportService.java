@@ -120,8 +120,8 @@ public class ShopeeImportService {
 
         if (matchedProduct != null) {
 
-            matchedProduct.setStock(
-                    matchedProduct.getStock()
+            matchedProduct.setStockQuantity(
+                    matchedProduct.getStockQuantity()
                             - sale.getQuantity()
             );
 
