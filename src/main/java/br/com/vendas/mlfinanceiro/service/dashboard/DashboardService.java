@@ -1,9 +1,10 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.dashboard;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.PeriodFilter;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.DashboardResponse;
+import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

@@ -1,11 +1,11 @@
-package br.com.vendas.mlfinanceiro.marketplace.importer;
+package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.domain.StockMovementType;
-import br.com.vendas.mlfinanceiro.service.FileStoreService;
+import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

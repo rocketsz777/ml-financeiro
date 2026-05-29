@@ -1,5 +1,6 @@
 package br.com.vendas.mlfinanceiro.integration.shopee;
 
+import br.com.vendas.mlfinanceiro.service.marketplace.importer.ShopeeImportService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

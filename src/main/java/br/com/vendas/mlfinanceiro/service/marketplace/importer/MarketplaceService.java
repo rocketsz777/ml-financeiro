@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;

@@ -1,7 +1,10 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
+import br.com.vendas.mlfinanceiro.exception.BusinessException;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResponse;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
+import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -9,19 +12,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Component
 public class MercadoLivreClient {
 
-    private final MercadoLivreTokenStore tokenStore;
-
     private final MercadoLivreAuthService authService;
 
     private final WebClient webClient;
 
     public MercadoLivreClient(
-            MercadoLivreTokenStore tokenStore,
             MercadoLivreAuthService authService
     ) {
-
-        this.tokenStore =
-                tokenStore;
 
         this.authService =
                 authService;
@@ -36,13 +33,10 @@ public class MercadoLivreClient {
 
     public String getMyUserData() {
 
-        authService.refreshTokenIfNeeded();
-
         validateAuthentication();
 
         String accessToken =
-                tokenStore.getToken()
-                        .getAccess_token();
+                authService.getValidAccessToken();
 
         return webClient.get()
                 .uri("/users/me")
@@ -57,21 +51,17 @@ public class MercadoLivreClient {
 
     public MercadoLivreOrderResponse getOrders() {
 
-        authService.refreshTokenIfNeeded();
-
         validateAuthentication();
 
         String accessToken =
-                tokenStore.getToken()
-                        .getAccess_token();
-
-        Long userId =
-                tokenStore.getToken()
-                        .getUser_id();
+                authService.getValidAccessToken();
 
         return webClient.get()
-                .uri(
-                        "/orders/search?seller=" + userId
+                .uri(uriBuilder ->
+                        uriBuilder
+                                .path("/orders/search")
+                                .queryParam("sort", "date_desc")
+                                .build()
                 )
                 .header(
                         HttpHeaders.AUTHORIZATION,
@@ -84,22 +74,17 @@ public class MercadoLivreClient {
                 .block();
     }
 
-    public MercadoLivreOrderDetail getOrderDetail(
+    public MercadoLivreOrderDetail getOrderById(
             Long orderId
     ) {
-
-        authService.refreshTokenIfNeeded();
 
         validateAuthentication();
 
         String accessToken =
-                tokenStore.getToken()
-                        .getAccess_token();
+                authService.getValidAccessToken();
 
         return webClient.get()
-                .uri(
-                        "/orders/" + orderId
-                )
+                .uri("/orders/" + orderId)
                 .header(
                         HttpHeaders.AUTHORIZATION,
                         "Bearer " + accessToken
@@ -113,9 +98,13 @@ public class MercadoLivreClient {
 
     private void validateAuthentication() {
 
-        if (!tokenStore.hasToken()) {
+        try {
 
-            throw new RuntimeException(
+            authService.getValidAccessToken();
+
+        } catch (Exception ex) {
+
+            throw new BusinessException(
                     "Mercado Livre não autenticado"
             );
         }

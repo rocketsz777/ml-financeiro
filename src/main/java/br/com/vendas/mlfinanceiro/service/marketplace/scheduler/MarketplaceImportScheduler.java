@@ -1,6 +1,7 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.marketplace.scheduler;
 
 import br.com.vendas.mlfinanceiro.domain.Sale;
+import br.com.vendas.mlfinanceiro.service.marketplace.importer.MarketplaceService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

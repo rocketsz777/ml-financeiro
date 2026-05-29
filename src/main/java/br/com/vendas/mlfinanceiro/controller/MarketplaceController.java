@@ -2,7 +2,7 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;
-import br.com.vendas.mlfinanceiro.service.MarketplaceService;
+import br.com.vendas.mlfinanceiro.service.marketplace.importer.MarketplaceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

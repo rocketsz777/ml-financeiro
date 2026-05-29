@@ -1,11 +1,14 @@
-package br.com.vendas.mlfinanceiro.integration.mercadolivre;
+package br.com.vendas.mlfinanceiro.service.marketplace.auth;
+
+import br.com.vendas.mlfinanceiro.domain.MarketplaceToken;
+import br.com.vendas.mlfinanceiro.exception.BusinessException;
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.MercadoLivreTokenResponse;
+import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import java.time.LocalDateTime;
 
 @Service
 public class MercadoLivreAuthService {
@@ -19,16 +22,16 @@ public class MercadoLivreAuthService {
     @Value("${mercadolivre.redirect-uri}")
     private String redirectUri;
 
-    private final MercadoLivreTokenStore tokenStore;
+    private final MarketplaceTokenService tokenService;
 
     private final WebClient webClient;
 
     public MercadoLivreAuthService(
-            MercadoLivreTokenStore tokenStore
+            MarketplaceTokenService tokenService
     ) {
 
-        this.tokenStore =
-                tokenStore;
+        this.tokenService =
+                tokenService;
 
         this.webClient =
                 WebClient.builder()
@@ -57,7 +60,7 @@ public class MercadoLivreAuthService {
                         + "&code=" + code
                         + "&redirect_uri=" + redirectUri;
 
-        MercadoLivreTokenResponse token =
+        MercadoLivreTokenResponse newToken =
                 webClient.post()
                         .uri("/oauth/token")
                         .contentType(
@@ -70,64 +73,62 @@ public class MercadoLivreAuthService {
                         )
                         .block();
 
-        if (token != null) {
+        System.out.println(
+                "TOKEN RESPONSE: " + newToken
+        );
 
-            token.setCreated_at(
-                    LocalDateTime.now()
+        if (newToken != null) {
+
+            System.out.println(
+                    "SALVANDO TOKEN NO BANCO"
+            );
+
+            tokenService.save(
+                    "MERCADO_LIVRE",
+                    String.valueOf(
+                            newToken.getUser_id()
+                    ),
+                    newToken.getAccess_token(),
+                    newToken.getRefresh_token(),
+                    newToken.getExpires_in().longValue()
             );
         }
 
-        return token;
+        return newToken;
     }
 
-    public void refreshTokenIfNeeded() {
+    public String getValidAccessToken() {
 
-        if (!tokenStore.hasToken()) {
+        MarketplaceToken token =
+                tokenService.getByMarketplace(
+                        "MERCADO_LIVRE"
+                );
 
-            return;
-        }
-
-        MercadoLivreTokenResponse token =
-                tokenStore.getToken();
-
-        if (token.getCreated_at() == null) {
-
-            refreshAccessToken();
-
-            return;
-        }
-
-        LocalDateTime expiresAt =
-                token.getCreated_at()
-                        .plusSeconds(
-                                token.getExpires_in()
-                        );
-
-        if (LocalDateTime.now()
-                .isAfter(
-                        expiresAt.minusMinutes(5)
-                )) {
+        if (tokenService.isExpired(token)) {
 
             refreshAccessToken();
         }
+
+        return tokenService
+                .getByMarketplace(
+                        "MERCADO_LIVRE"
+                )
+                .getAccessToken();
     }
 
     public void refreshAccessToken() {
 
-        MercadoLivreTokenResponse currentToken =
-                tokenStore.getToken();
-
-        if (currentToken == null) {
-
-            return;
-        }
+        MarketplaceToken currentToken =
+                tokenService.getByMarketplace(
+                        "MERCADO_LIVRE"
+                );
 
         String requestBody =
                 "grant_type=refresh_token"
                         + "&client_id=" + clientId
                         + "&client_secret=" + clientSecret
                         + "&refresh_token="
-                        + currentToken.getRefresh_token();
+                        + currentToken.getRefreshToken();
 
         MercadoLivreTokenResponse newToken =
                 webClient.post()
@@ -142,15 +143,21 @@ public class MercadoLivreAuthService {
                         )
                         .block();
 
-        if (newToken != null) {
+        if (newToken == null) {
 
-            newToken.setCreated_at(
-                    LocalDateTime.now()
-            );
-
-            tokenStore.save(
-                    newToken
+            throw new BusinessException(
+                    "Erro ao atualizar token Mercado Livre"
             );
         }
+
+        tokenService.save(
+                "MERCADO_LIVRE",
+                String.valueOf(
+                        newToken.getUser_id()
+                ),
+                newToken.getAccess_token(),
+                newToken.getRefresh_token(),
+                newToken.getExpires_in().longValue()
+        );
     }
 }

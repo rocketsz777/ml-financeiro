@@ -1,5 +1,8 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
+import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
+import br.com.vendas.mlfinanceiro.service.marketplace.importer.MercadoLivreImportService;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,33 +14,37 @@ public class MercadoLivreController {
 
     private final MercadoLivreImportService importService;
 
-    private final MercadoLivreTokenStore tokenStore;
+    private final MercadoLivreAuthService authService;
 
     public MercadoLivreController(
             MercadoLivreClient client,
             MercadoLivreImportService importService,
-            MercadoLivreTokenStore tokenStore
+            MercadoLivreAuthService authService
     ) {
 
-        this.client = client;
+        this.client =
+                client;
 
-        this.importService = importService;
+        this.importService =
+                importService;
 
-        this.tokenStore = tokenStore;
+        this.authService =
+                authService;
     }
 
     @GetMapping("/api/mercadolivre/status")
     public String status() {
 
-        return tokenStore.hasToken()
+        try {
 
-                ?
+            authService.getValidAccessToken();
 
-                "CONECTADO"
+            return "CONECTADO";
 
-                :
+        } catch (Exception ex) {
 
-                "DESCONECTADO";
+            return "DESCONECTADO";
+        }
     }
 
     @GetMapping("/api/mercadolivre/me")

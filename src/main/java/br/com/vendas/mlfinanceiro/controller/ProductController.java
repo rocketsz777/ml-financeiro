@@ -2,7 +2,7 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.dto.ProductRequest;
-import br.com.vendas.mlfinanceiro.service.SalesService;
+import br.com.vendas.mlfinanceiro.service.sales.SalesService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

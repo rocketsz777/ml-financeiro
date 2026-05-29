@@ -2,7 +2,7 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.dto.StockEntryRequest;
-import br.com.vendas.mlfinanceiro.service.StockService;
+import br.com.vendas.mlfinanceiro.service.stock.StockService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
