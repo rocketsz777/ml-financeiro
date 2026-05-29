@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.report;
 
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.MonthlySummaryResponse;

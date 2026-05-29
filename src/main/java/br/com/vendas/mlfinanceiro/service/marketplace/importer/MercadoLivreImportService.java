@@ -1,253 +1,142 @@
-package br.com.vendas.mlfinanceiro.marketplace.importer;
+package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
-import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
-import br.com.vendas.mlfinanceiro.domain.StockMovement;
-import br.com.vendas.mlfinanceiro.domain.StockMovementType;
+
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.MercadoLivreClient;
+
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResponse;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResult;
+
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderItem;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivrePayment;
-import br.com.vendas.mlfinanceiro.service.FileStoreService;
+
+import br.com.vendas.mlfinanceiro.repository.SaleRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.util.List;
 
 @Service
 public class MercadoLivreImportService {
 
     private final MercadoLivreClient mercadoLivreClient;
 
-    private final FileStoreService fileStoreService;
+    private final SaleRepository saleRepository;
 
     public MercadoLivreImportService(
             MercadoLivreClient mercadoLivreClient,
-            FileStoreService fileStoreService
+            SaleRepository saleRepository
     ) {
 
         this.mercadoLivreClient =
                 mercadoLivreClient;
 
-        this.fileStoreService =
-                fileStoreService;
+        this.saleRepository =
+                saleRepository;
     }
 
     public int importOrders() {
 
-        List<MercadoLivreOrderResult> orders =
-                mercadoLivreClient
-                        .getOrders()
-                        .getResults();
+        int importedCount = 0;
 
-        List<Sale> sales =
-                fileStoreService.loadSales();
+        MercadoLivreOrderResponse response =
+                mercadoLivreClient.getOrders();
 
-        List<Product> products =
-                fileStoreService.loadProducts();
+        if (response == null
+                || response.getResults() == null) {
 
-        List<StockMovement> stockMovements =
-                fileStoreService.loadStockMovements();
+            return 0;
+        }
 
-        int imported = 0;
+        for (MercadoLivreOrderResult order
+                : response.getResults()) {
 
-        for (MercadoLivreOrderResult order : orders) {
+            String orderId =
+                    String.valueOf(
+                            order.getId()
+                    );
 
-            boolean alreadyExists =
-                    sales.stream()
-                            .anyMatch(
-                                    s -> order.getId()
-                                            .toString()
-                                            .equals(
-                                                    s.getOrderId()
-                                            )
-                            );
+            boolean alreadyImported =
+                    saleRepository.existsByOrderId(
+                            orderId
+                    );
 
-            if (alreadyExists) {
+            if (alreadyImported) {
 
                 continue;
             }
 
             MercadoLivreOrderDetail detail =
-                    mercadoLivreClient
-                            .getOrderDetail(
-                                    order.getId()
-                            );
+                    mercadoLivreClient.getOrderById(
+                            order.getId()
+                    );
 
-            if (detail.getOrder_items() == null ||
-                    detail.getOrder_items().isEmpty()) {
+            if (detail == null
+                    || detail.getOrder_items() == null
+                    || detail.getOrder_items().isEmpty()) {
 
                 continue;
             }
 
             MercadoLivreOrderItem firstItem =
-                    detail.getOrder_items()
-                            .get(0);
+                    detail.getOrder_items().get(0);
 
             MercadoLivrePayment payment =
                     detail.getPayments() != null
                             && !detail.getPayments().isEmpty()
-                            ? detail.getPayments()
-                            .get(0)
+                            ? detail.getPayments().get(0)
                             : null;
 
-            Sale sale = new Sale();
+            BigDecimal liquidAmount =
+                    payment != null
+                            && payment.getTransaction_amount() != null
+                            ? payment.getTransaction_amount()
+                            : BigDecimal.ZERO;
+
+            Sale sale =
+                    new Sale();
 
             sale.setOrderId(
-                    detail.getId().toString()
-            );
-
-            String sellerSku =
-                    firstItem.getItem()
-                            .getSeller_sku();
-
-            if (sellerSku == null ||
-                    sellerSku.trim().isEmpty()) {
-
-                sellerSku = "0";
-            }
-
-            sellerSku =
-                    normalizeSku(
-                            sellerSku
-                    );
-
-            final String lookupSku =
-                    sellerSku;
-
-            sale.setSku(
-                    sellerSku
-            );
-
-            sale.setProductName(
-                    firstItem.getItem()
-                            .getTitle()
+                    orderId
             );
 
             sale.setMarketplace(
                     Marketplace.MERCADO_LIVRE
             );
 
+            sale.setProductName(
+                    firstItem.getItem().getTitle()
+            );
+
+            sale.setSku(
+                    firstItem.getItem().getId()
+            );
+
             sale.setQuantity(
                     firstItem.getQuantity()
             );
 
-            BigDecimal quantity =
-                    BigDecimal.valueOf(
-                            firstItem.getQuantity()
-                    );
-
-            BigDecimal grossAmount =
-                    detail.getTotal_amount();
+            sale.setSoldAt(
+                    LocalDateTime.now()
+            );
 
             sale.setGrossAmount(
-                    grossAmount
+                    liquidAmount
             );
 
-            BigDecimal unitPrice =
-                    grossAmount.divide(
-                            quantity,
-                            2,
-                            BigDecimal.ROUND_HALF_UP
-                    );
+            sale.setNetAmount(
+                    liquidAmount
+            );
 
             sale.setUnitSalePrice(
-                    unitPrice
+                    liquidAmount
             );
-
-            Product matchedProduct = null;
-
-            if (!lookupSku.equals("0")) {
-
-                matchedProduct =
-                        products.stream()
-                                .filter(
-                                        p -> p.getSku() != null
-                                                && normalizeSku(
-                                                p.getSku()
-                                        ).equalsIgnoreCase(
-                                                lookupSku
-                                        )
-                                )
-                                .findFirst()
-                                .orElse(null);
-            }
-
-            BigDecimal productCost =
-                    BigDecimal.ZERO;
-
-            if (matchedProduct != null &&
-                    matchedProduct.getCostPrice() != null) {
-
-                productCost =
-                        matchedProduct.getCostPrice();
-
-                Integer currentStock =
-                        matchedProduct.getStock();
-
-                if (currentStock == null) {
-
-                    currentStock = 0;
-                }
-
-                int newStock =
-                        currentStock -
-                                firstItem.getQuantity();
-
-                if (newStock < 0) {
-
-                    newStock = 0;
-                }
-
-                matchedProduct.setStock(
-                        newStock
-                );
-
-                StockMovement movement =
-                        new StockMovement();
-
-                movement.setSku(
-                        matchedProduct.getSku()
-                );
-
-                movement.setType(
-                        StockMovementType.SALE
-                );
-
-                movement.setQuantity(
-                        -firstItem.getQuantity()
-                );
-
-                movement.setReference(
-                        "ML_ORDER_" +
-                                detail.getId()
-                );
-
-                movement.setCreatedAt(
-                        LocalDateTime.now()
-                );
-
-                stockMovements.add(
-                        movement
-                );
-            }
-
-            sale.setProductCost(
-                    productCost
-            );
-
-            BigDecimal marketplaceFee =
-                    payment != null
-                            && payment.getMarketplace_fee() != null
-                            ? payment.getMarketplace_fee()
-                            : BigDecimal.ZERO;
 
             sale.setMarketplaceFee(
-                    marketplaceFee
+                    BigDecimal.ZERO
             );
 
             sale.setShippingCost(
@@ -258,75 +147,19 @@ public class MercadoLivreImportService {
                     BigDecimal.ZERO
             );
 
-            BigDecimal netAmount =
-                    grossAmount
-                            .subtract(
-                                    marketplaceFee
-                            )
-                            .subtract(
-                                    sale.getShippingCost()
-                            );
-
-            sale.setNetAmount(
-                    netAmount
+            sale.setProductCost(
+                    BigDecimal.ZERO
             );
 
-            BigDecimal totalProductCost =
-                    productCost.multiply(
-                            quantity
-                    );
+            sale.calculateProfit();
 
-            sale.setProfit(
-                    netAmount
-                            .subtract(
-                                    totalProductCost
-                            )
-                            .subtract(
-                                    sale.getExtraCosts()
-                            )
-            );
-
-            sale.setSoldAt(
-                    OffsetDateTime.parse(
-                            order.getDate_created()
-                    ).toLocalDateTime()
-            );
-
-            sales.add(
+            saleRepository.save(
                     sale
             );
 
-            imported++;
+            importedCount++;
         }
 
-        fileStoreService.saveSales(
-                sales
-        );
-
-        fileStoreService.saveProducts(
-                products
-        );
-
-        fileStoreService.saveStockMovements(
-                stockMovements
-        );
-
-        return imported;
-    }
-
-    private String normalizeSku(
-            String sku
-    ) {
-
-        if (sku == null) {
-
-            return "";
-        }
-
-        return sku
-                .trim()
-                .replaceAll("[^a-zA-Z0-9]", "")
-                .replaceFirst("^0+(?!$)", "")
-                .toUpperCase();
+        return importedCount;
     }
 }

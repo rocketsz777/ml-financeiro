@@ -1,6 +1,6 @@
 package br.com.vendas.mlfinanceiro.controller;
 
-import br.com.vendas.mlfinanceiro.service.SalesService;
+import br.com.vendas.mlfinanceiro.service.sales.SalesService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

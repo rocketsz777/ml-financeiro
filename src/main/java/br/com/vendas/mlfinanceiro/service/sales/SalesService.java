@@ -1,10 +1,11 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.sales;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
+import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -78,8 +79,8 @@ public class SalesService {
                     product.getCostPrice()
             );
 
-            current.setStock(
-                    product.getStock()
+            current.setStockQuantity(
+                    product.getStockQuantity()
             );
 
         } else {
@@ -145,7 +146,7 @@ public class SalesService {
                         );
 
         if (
-                product.getStock() <
+                product.getStockQuantity() <
                         request.getQuantity()
         ) {
 
@@ -191,9 +192,9 @@ public class SalesService {
                                 shippingCost
                         );
 
-        product.setStock(
+        product.setStockQuantity(
 
-                product.getStock()
+                product.getStockQuantity()
                         - request.getQuantity()
         );
 

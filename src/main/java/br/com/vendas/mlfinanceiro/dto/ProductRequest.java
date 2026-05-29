@@ -3,20 +3,54 @@ package br.com.vendas.mlfinanceiro.dto;
 import java.math.BigDecimal;
 
 public class ProductRequest {
-    private String sku;
-    private String mlItemId;
-    private String name;
-    private BigDecimal costPrice;
-    private int stock;
 
-    public String getSku() { return sku; }
-    public void setSku(String sku) { this.sku = sku; }
-    public String getMlItemId() { return mlItemId; }
-    public void setMlItemId(String mlItemId) { this.mlItemId = mlItemId; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public BigDecimal getCostPrice() { return costPrice; }
-    public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
-    public int getStock() { return stock; }
-    public void setStock(int stock) { this.stock = stock; }
+    private String sku;
+
+    private String mlItemId;
+
+    private String name;
+
+    private BigDecimal costPrice;
+
+    private Integer stockQuantity;
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public String getMlItemId() {
+        return mlItemId;
+    }
+
+    public void setMlItemId(String mlItemId) {
+        this.mlItemId = mlItemId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public BigDecimal getCostPrice() {
+        return costPrice;
+    }
+
+    public void setCostPrice(BigDecimal costPrice) {
+        this.costPrice = costPrice;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    }
 }

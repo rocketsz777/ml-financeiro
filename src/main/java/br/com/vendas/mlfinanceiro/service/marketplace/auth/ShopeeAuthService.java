@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.integration.shopee;
+package br.com.vendas.mlfinanceiro.service.marketplace.auth;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

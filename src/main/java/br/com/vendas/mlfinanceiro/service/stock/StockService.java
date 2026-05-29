@@ -1,9 +1,10 @@
-package br.com.vendas.mlfinanceiro.service;
+package br.com.vendas.mlfinanceiro.service.stock;
 
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.domain.StockMovementType;
 import br.com.vendas.mlfinanceiro.dto.StockEntryRequest;
+import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -44,8 +45,8 @@ public class StockService {
                                 )
                         );
 
-        product.setStock(
-                product.getStock() +
+        product.setStockQuantity(
+                product.getStockQuantity() +
                         request.getQuantity()
         );
 

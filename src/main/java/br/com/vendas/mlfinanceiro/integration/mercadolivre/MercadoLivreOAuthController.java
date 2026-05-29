@@ -1,5 +1,7 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 
+import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,18 +11,12 @@ public class MercadoLivreOAuthController {
 
     private final MercadoLivreAuthService authService;
 
-    private final MercadoLivreTokenStore tokenStore;
-
     public MercadoLivreOAuthController(
-            MercadoLivreAuthService authService,
-            MercadoLivreTokenStore tokenStore
+            MercadoLivreAuthService authService
     ) {
 
         this.authService =
                 authService;
-
-        this.tokenStore =
-                tokenStore;
     }
 
     @GetMapping("/oauth/mercadolivre/login")
@@ -35,14 +31,8 @@ public class MercadoLivreOAuthController {
             @RequestParam("code") String code
     ) {
 
-        MercadoLivreTokenResponse token =
-                authService
-                        .exchangeCodeForToken(
-                                code
-                        );
-
-        tokenStore.save(
-                token
+        authService.exchangeCodeForToken(
+                code
         );
 
         return "Mercado Livre conectado com sucesso!";
