@@ -4,6 +4,7 @@ import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
+import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,15 @@ public class SalesService {
 
     private final SaleRepository saleRepository;
 
+    private final ProductRepository productRepository;
+
     public SalesService(
 
             FileStoreService fileStoreService,
 
-            SaleRepository saleRepository
+            SaleRepository saleRepository,
+
+            ProductRepository productRepository
     ) {
 
         this.fileStoreService =
@@ -32,88 +37,9 @@ public class SalesService {
 
         this.saleRepository =
                 saleRepository;
-    }
 
-    // =========================================
-    // PRODUTOS
-    // =========================================
-
-    public List<Product> listProducts() {
-
-        return fileStoreService.loadProducts();
-    }
-
-    public Product createOrUpdateProduct(
-            Product product
-    ) {
-
-        List<Product> products =
-                fileStoreService.loadProducts();
-
-        Optional<Product> existing =
-                products.stream()
-
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                product.getSku()
-                                        )
-                        )
-
-                        .findFirst();
-
-        if (existing.isPresent()) {
-
-            Product current =
-                    existing.get();
-
-            current.setName(
-                    product.getName()
-            );
-
-            current.setMlItemId(
-                    product.getMlItemId()
-            );
-
-            current.setCostPrice(
-                    product.getCostPrice()
-            );
-
-            current.setStockQuantity(
-                    product.getStockQuantity()
-            );
-
-        } else {
-
-            products.add(
-                    product
-            );
-        }
-
-        fileStoreService.saveProducts(
-                products
-        );
-
-        return product;
-    }
-
-    public void deleteProduct(
-            String sku
-    ) {
-
-        List<Product> products =
-                fileStoreService.loadProducts();
-
-        products.removeIf(
-                p -> p.getSku()
-                        .equalsIgnoreCase(
-                                sku
-                        )
-        );
-
-        fileStoreService.saveProducts(
-                products
-        );
+        this.productRepository =
+                productRepository;
     }
 
     // =========================================
@@ -124,20 +50,12 @@ public class SalesService {
             SaleRequest request
     ) {
 
-        List<Product> products =
-                fileStoreService.loadProducts();
-
         Product product =
-                products.stream()
+                productRepository
 
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                request.getSku()
-                                        )
+                        .findBySku(
+                                request.getSku()
                         )
-
-                        .findFirst()
 
                         .orElseThrow(
                                 () -> new RuntimeException(
@@ -198,8 +116,8 @@ public class SalesService {
                         - request.getQuantity()
         );
 
-        fileStoreService.saveProducts(
-                products
+        productRepository.save(
+                product
         );
 
         Sale sale =

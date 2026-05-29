@@ -72,8 +72,8 @@ public class Sale {
                 );
 
         if (
-                productCost != null
-                        && productCost.compareTo(
+                netAmount != null
+                        && netAmount.compareTo(
                         BigDecimal.ZERO
                 ) > 0
         ) {
@@ -82,8 +82,8 @@ public class Sale {
 
                     profit
                             .divide(
-                                    productCost,
-                                    2,
+                                    netAmount,
+                                    4,
                                     RoundingMode.HALF_UP
                             )
                             .multiply(
@@ -91,6 +91,11 @@ public class Sale {
                                             "100"
                                     )
                             );
+
+        } else {
+
+            this.profitMargin =
+                    BigDecimal.ZERO;
         }
     }
 
