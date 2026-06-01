@@ -1,9 +1,11 @@
 package br.com.vendas.mlfinanceiro.service.sales;
 
+import br.com.vendas.mlfinanceiro.domain.ExtraCost;
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
+import br.com.vendas.mlfinanceiro.repository.ExtraCostRepository;
 import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
@@ -23,13 +25,17 @@ public class SalesService {
 
     private final ProductRepository productRepository;
 
+    private final ExtraCostRepository extraCostRepository;
+
     public SalesService(
 
             FileStoreService fileStoreService,
 
             SaleRepository saleRepository,
 
-            ProductRepository productRepository
+            ProductRepository productRepository,
+
+            ExtraCostRepository extraCostRepository
     ) {
 
         this.fileStoreService =
@@ -40,6 +46,9 @@ public class SalesService {
 
         this.productRepository =
                 productRepository;
+
+        this.extraCostRepository =
+                extraCostRepository;
     }
 
     // =========================================
@@ -97,7 +106,20 @@ public class SalesService {
                 );
 
         BigDecimal extraCosts =
-                BigDecimal.ZERO;
+
+                extraCostRepository
+                        .findByActiveTrue()
+
+                        .stream()
+
+                        .map(
+                                ExtraCost::getValue
+                        )
+
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
 
         BigDecimal netAmount =
                 grossAmount

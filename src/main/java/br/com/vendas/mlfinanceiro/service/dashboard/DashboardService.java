@@ -4,7 +4,7 @@ import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.PeriodFilter;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.DashboardResponse;
-import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
+import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,14 +17,14 @@ import java.util.stream.Collectors;
 @Service
 public class DashboardService {
 
-    private final FileStoreService fileStoreService;
+    private final SaleRepository saleRepository;
 
     public DashboardService(
-            FileStoreService fileStoreService
+            SaleRepository saleRepository
     ) {
 
-        this.fileStoreService =
-                fileStoreService;
+        this.saleRepository =
+                saleRepository;
     }
 
     public DashboardResponse getSummary(
@@ -33,7 +33,7 @@ public class DashboardService {
     ) {
 
         List<Sale> sales =
-                fileStoreService.loadSales();
+                saleRepository.findAll();
 
         LocalDateTime now =
                 LocalDateTime.now();
@@ -78,7 +78,7 @@ public class DashboardService {
                 filteredSales.stream()
 
                         .map(
-                                Sale::getGrossAmount
+                                Sale::getNetAmount
                         )
 
                         .reduce(
@@ -102,6 +102,11 @@ public class DashboardService {
                                                                 BigDecimal.valueOf(
                                                                         sale.getQuantity()
                                                                 )
+                                                        )
+                                                        .add(
+                                                                sale.getExtraCosts() != null
+                                                                        ? sale.getExtraCosts()
+                                                                        : BigDecimal.ZERO
                                                         )
 
                                                 :
@@ -143,7 +148,7 @@ public class DashboardService {
                 BigDecimal.ZERO;
 
         if (
-                totalCost.compareTo(
+                totalRevenue.compareTo(
                         BigDecimal.ZERO
                 ) > 0
         ) {
@@ -151,13 +156,15 @@ public class DashboardService {
             profitMargin =
 
                     totalProfit
+
                             .multiply(
                                     BigDecimal.valueOf(
                                             100
                                     )
                             )
+
                             .divide(
-                                    totalCost,
+                                    totalRevenue,
                                     2,
                                     RoundingMode.HALF_UP
                             );
