@@ -6,7 +6,11 @@ import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.DashboardResponse;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import org.springframework.stereotype.Service;
+import br.com.vendas.mlfinanceiro.dto.DashboardMonthlyResponse;
+import br.com.vendas.mlfinanceiro.dto.DashboardProductResponse;
+import br.com.vendas.mlfinanceiro.dto.DashboardWeeklyResponse;
 
+import java.time.YearMonth;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -18,6 +22,7 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final SaleRepository saleRepository;
+
 
     public DashboardService(
             SaleRepository saleRepository
@@ -325,6 +330,238 @@ public class DashboardService {
                                 (a, b) -> a,
                                 java.util.LinkedHashMap::new
                         )
+                );
+    }
+
+    public List<DashboardWeeklyResponse> getWeekly() {
+
+        List<Sale> sales =
+                saleRepository.findAll();
+
+        return sales.stream()
+
+                .filter(
+                        sale -> sale.getSoldAt() != null
+                )
+
+                .collect(
+                        Collectors.groupingBy(
+                                sale ->
+                                        sale.getSoldAt()
+                                                .toLocalDate()
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .sorted(
+                        Map.Entry.comparingByKey()
+                )
+
+                .map(
+                        entry -> {
+
+                            DashboardWeeklyResponse response =
+                                    new DashboardWeeklyResponse();
+
+                            response.setDate(
+                                    entry.getKey()
+                                            .toString()
+                            );
+
+                            response.setRevenue(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .map(
+                                                    Sale::getNetAmount
+                                            )
+
+                                            .reduce(
+                                                    BigDecimal.ZERO,
+                                                    BigDecimal::add
+                                            )
+                            );
+
+                            response.setProfit(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .map(
+                                                    Sale::getProfit
+                                            )
+
+                                            .reduce(
+                                                    BigDecimal.ZERO,
+                                                    BigDecimal::add
+                                            )
+                            );
+
+                            return response;
+                        }
+                )
+
+                .collect(
+                        Collectors.toList()
+                );
+    }
+
+    public List<DashboardMonthlyResponse> getMonthly() {
+
+        List<Sale> sales =
+                saleRepository.findAll();
+
+        return sales.stream()
+
+                .filter(
+                        sale -> sale.getSoldAt() != null
+                )
+
+                .collect(
+                        Collectors.groupingBy(
+                                sale ->
+                                        YearMonth.from(
+                                                sale.getSoldAt()
+                                        )
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .sorted(
+                        Map.Entry.comparingByKey()
+                )
+
+                .map(
+                        entry -> {
+
+                            DashboardMonthlyResponse response =
+                                    new DashboardMonthlyResponse();
+
+                            response.setMonth(
+                                    entry.getKey()
+                                            .toString()
+                            );
+
+                            response.setRevenue(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .map(
+                                                    Sale::getNetAmount
+                                            )
+
+                                            .reduce(
+                                                    BigDecimal.ZERO,
+                                                    BigDecimal::add
+                                            )
+                            );
+
+                            response.setProfit(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .map(
+                                                    Sale::getProfit
+                                            )
+
+                                            .reduce(
+                                                    BigDecimal.ZERO,
+                                                    BigDecimal::add
+                                            )
+                            );
+
+                            return response;
+                        }
+                )
+
+                .collect(
+                        Collectors.toList()
+                );
+    }
+
+    public List<DashboardProductResponse> getProducts() {
+
+        List<Sale> sales =
+                saleRepository.findAll();
+
+        return sales.stream()
+
+                .collect(
+                        Collectors.groupingBy(
+                                Sale::getProductName
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .map(
+                        entry -> {
+
+                            DashboardProductResponse response =
+                                    new DashboardProductResponse();
+
+                            response.setProductName(
+                                    entry.getKey()
+                            );
+
+                            response.setQuantitySold(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .mapToInt(
+                                                    Sale::getQuantity
+                                            )
+
+                                            .sum()
+                            );
+
+                            response.setProfit(
+
+                                    entry.getValue()
+
+                                            .stream()
+
+                                            .map(
+                                                    Sale::getProfit
+                                            )
+
+                                            .reduce(
+                                                    BigDecimal.ZERO,
+                                                    BigDecimal::add
+                                            )
+                            );
+
+                            return response;
+                        }
+                )
+
+                .sorted(
+                        (a, b) ->
+                                b.getQuantitySold()
+                                        .compareTo(
+                                                a.getQuantitySold()
+                                        )
+                )
+
+                .collect(
+                        Collectors.toList()
                 );
     }
 }
