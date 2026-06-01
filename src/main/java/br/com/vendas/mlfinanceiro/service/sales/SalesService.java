@@ -1,9 +1,12 @@
 package br.com.vendas.mlfinanceiro.service.sales;
 
+import br.com.vendas.mlfinanceiro.domain.ExtraCost;
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.SaleRequest;
+import br.com.vendas.mlfinanceiro.repository.ExtraCostRepository;
+import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.springframework.stereotype.Service;
@@ -20,11 +23,19 @@ public class SalesService {
 
     private final SaleRepository saleRepository;
 
+    private final ProductRepository productRepository;
+
+    private final ExtraCostRepository extraCostRepository;
+
     public SalesService(
 
             FileStoreService fileStoreService,
 
-            SaleRepository saleRepository
+            SaleRepository saleRepository,
+
+            ProductRepository productRepository,
+
+            ExtraCostRepository extraCostRepository
     ) {
 
         this.fileStoreService =
@@ -32,88 +43,12 @@ public class SalesService {
 
         this.saleRepository =
                 saleRepository;
-    }
 
-    // =========================================
-    // PRODUTOS
-    // =========================================
+        this.productRepository =
+                productRepository;
 
-    public List<Product> listProducts() {
-
-        return fileStoreService.loadProducts();
-    }
-
-    public Product createOrUpdateProduct(
-            Product product
-    ) {
-
-        List<Product> products =
-                fileStoreService.loadProducts();
-
-        Optional<Product> existing =
-                products.stream()
-
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                product.getSku()
-                                        )
-                        )
-
-                        .findFirst();
-
-        if (existing.isPresent()) {
-
-            Product current =
-                    existing.get();
-
-            current.setName(
-                    product.getName()
-            );
-
-            current.setMlItemId(
-                    product.getMlItemId()
-            );
-
-            current.setCostPrice(
-                    product.getCostPrice()
-            );
-
-            current.setStockQuantity(
-                    product.getStockQuantity()
-            );
-
-        } else {
-
-            products.add(
-                    product
-            );
-        }
-
-        fileStoreService.saveProducts(
-                products
-        );
-
-        return product;
-    }
-
-    public void deleteProduct(
-            String sku
-    ) {
-
-        List<Product> products =
-                fileStoreService.loadProducts();
-
-        products.removeIf(
-                p -> p.getSku()
-                        .equalsIgnoreCase(
-                                sku
-                        )
-        );
-
-        fileStoreService.saveProducts(
-                products
-        );
+        this.extraCostRepository =
+                extraCostRepository;
     }
 
     // =========================================
@@ -124,20 +59,12 @@ public class SalesService {
             SaleRequest request
     ) {
 
-        List<Product> products =
-                fileStoreService.loadProducts();
-
         Product product =
-                products.stream()
+                productRepository
 
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                request.getSku()
-                                        )
+                        .findBySku(
+                                request.getSku()
                         )
-
-                        .findFirst()
 
                         .orElseThrow(
                                 () -> new RuntimeException(
@@ -179,7 +106,20 @@ public class SalesService {
                 );
 
         BigDecimal extraCosts =
-                BigDecimal.ZERO;
+
+                extraCostRepository
+                        .findByActiveTrue()
+
+                        .stream()
+
+                        .map(
+                                ExtraCost::getValue
+                        )
+
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
 
         BigDecimal netAmount =
                 grossAmount
@@ -198,8 +138,8 @@ public class SalesService {
                         - request.getQuantity()
         );
 
-        fileStoreService.saveProducts(
-                products
+        productRepository.save(
+                product
         );
 
         Sale sale =
