@@ -2,10 +2,12 @@ package br.com.vendas.mlfinanceiro.integration.shopee;
 
 import br.com.vendas.mlfinanceiro.service.marketplace.auth.ShopeeAuthService;
 import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequestMapping("/shopee")
@@ -14,6 +16,9 @@ public class ShopeeController {
     private final ShopeeAuthService shopeeAuthService;
 
     private final MarketplaceTokenService tokenService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     public ShopeeController(
             ShopeeAuthService shopeeAuthService,
@@ -35,7 +40,7 @@ public class ShopeeController {
     }
 
     @GetMapping("/callback")
-    public String callback(
+    public RedirectView callback(
 
             @RequestParam String code,
 
@@ -43,13 +48,40 @@ public class ShopeeController {
             String shopId
     ) {
 
-        shopeeAuthService
-                .saveAuthorizationCode(
-                        code,
-                        shopId
-                );
+        try {
 
-        return "Shopee conectada com sucesso";
+            shopeeAuthService
+                    .exchangeCodeForToken(
+                            code,
+                            shopId
+                    );
+
+            return redirectToApp(
+                    "shopee",
+                    "success"
+            );
+
+        } catch (Exception ex) {
+
+            return redirectToApp(
+                    "shopee",
+                    "error"
+            );
+        }
+    }
+
+    private RedirectView redirectToApp(
+            String marketplace,
+            String status
+    ) {
+
+        return new RedirectView(
+                frontendUrl
+                        + "?auth="
+                        + marketplace
+                        + "&status="
+                        + status
+                );
     }
 
     @GetMapping("/status")

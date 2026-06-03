@@ -1,6 +1,8 @@
 package br.com.vendas.mlfinanceiro.service.marketplace.auth;
 
 import br.com.vendas.mlfinanceiro.domain.MarketplaceToken;
+import br.com.vendas.mlfinanceiro.exception.BusinessException;
+import br.com.vendas.mlfinanceiro.integration.shopee.ShopeeTokenResponse;
 import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -9,7 +11,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
+import java.io.UnsupportedEncodingException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class ShopeeAuthService {
@@ -66,21 +72,97 @@ public class ShopeeAuthService {
                 + "?partner_id=" + partnerId
                 + "&timestamp=" + timestamp
                 + "&sign=" + sign
-                + "&redirect=" + redirectUri;
+                + "&redirect="
+                + encodeRedirectUri();
     }
 
-    public void saveAuthorizationCode(
+    public ShopeeTokenResponse exchangeCodeForToken(
             String code,
             String shopId
     ) {
 
+        String path =
+                "/api/v2/auth/token/get";
+
+        long timestamp =
+                Instant.now()
+                        .getEpochSecond();
+
+        String sign =
+                generateSignature(
+                        partnerId
+                                + path
+                                + timestamp
+                );
+
+        Map<String, Object> requestBody =
+                new LinkedHashMap<>();
+
+        requestBody.put(
+                "code",
+                code
+        );
+
+        requestBody.put(
+                "shop_id",
+                Long.valueOf(shopId)
+        );
+
+        requestBody.put(
+                "partner_id",
+                Long.valueOf(partnerId)
+        );
+
+        ShopeeTokenResponse newToken =
+                webClient.post()
+                        .uri(uriBuilder ->
+                                uriBuilder
+                                        .path(path)
+                                        .queryParam(
+                                                "partner_id",
+                                                partnerId
+                                        )
+                                        .queryParam(
+                                                "timestamp",
+                                                timestamp
+                                        )
+                                        .queryParam(
+                                                "sign",
+                                                sign
+                                        )
+                                        .build()
+                        )
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(
+                                ShopeeTokenResponse.class
+                        )
+                        .block();
+
+        if (newToken == null
+                || newToken.getAccess_token() == null) {
+
+            throw new BusinessException(
+                    getTokenErrorMessage(
+                            newToken,
+                            "Erro ao autenticar Shopee"
+                    )
+            );
+        }
+
         tokenService.save(
                 "SHOPEE",
-                shopId,
-                code,
-                "",
-                31536000L
+                String.valueOf(
+                        newToken.getShop_id() != null
+                                ? newToken.getShop_id()
+                                : Long.valueOf(shopId)
+                ),
+                newToken.getAccess_token(),
+                newToken.getRefresh_token(),
+                getExpiresIn(newToken)
         );
+
+        return newToken;
     }
 
     public String getValidAccessToken() {
@@ -90,7 +172,159 @@ public class ShopeeAuthService {
                         "SHOPEE"
                 );
 
-        return token.getAccessToken();
+        if (tokenService.isExpired(token)) {
+
+            refreshAccessToken();
+        }
+
+        return tokenService
+                .getByMarketplace(
+                        "SHOPEE"
+                )
+                .getAccessToken();
+    }
+
+    public void refreshAccessToken() {
+
+        MarketplaceToken currentToken =
+                tokenService.getByMarketplace(
+                        "SHOPEE"
+                );
+
+        String path =
+                "/api/v2/auth/access_token/get";
+
+        long timestamp =
+                Instant.now()
+                        .getEpochSecond();
+
+        String sign =
+                generateSignature(
+                        partnerId
+                                + path
+                                + timestamp
+                );
+
+        Map<String, Object> requestBody =
+                new LinkedHashMap<>();
+
+        requestBody.put(
+                "refresh_token",
+                currentToken.getRefreshToken()
+        );
+
+        requestBody.put(
+                "shop_id",
+                Long.valueOf(
+                        currentToken.getSellerId()
+                )
+        );
+
+        requestBody.put(
+                "partner_id",
+                Long.valueOf(partnerId)
+        );
+
+        ShopeeTokenResponse newToken =
+                webClient.post()
+                        .uri(uriBuilder ->
+                                uriBuilder
+                                        .path(path)
+                                        .queryParam(
+                                                "partner_id",
+                                                partnerId
+                                        )
+                                        .queryParam(
+                                                "timestamp",
+                                                timestamp
+                                        )
+                                        .queryParam(
+                                                "sign",
+                                                sign
+                                        )
+                                        .build()
+                        )
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(
+                                ShopeeTokenResponse.class
+                        )
+                        .block();
+
+        if (newToken == null
+                || newToken.getAccess_token() == null) {
+
+            throw new BusinessException(
+                    getTokenErrorMessage(
+                            newToken,
+                            "Erro ao atualizar token Shopee"
+                    )
+            );
+        }
+
+        tokenService.save(
+                "SHOPEE",
+                currentToken.getSellerId(),
+                newToken.getAccess_token(),
+                newToken.getRefresh_token(),
+                getExpiresIn(newToken)
+        );
+    }
+
+    private Long getExpiresIn(
+            ShopeeTokenResponse token
+    ) {
+
+        return token.getExpire_in() != null
+                ? token.getExpire_in()
+                : 14400L;
+    }
+
+    private String getTokenErrorMessage(
+            ShopeeTokenResponse token,
+            String fallback
+    ) {
+
+        if (token == null) {
+
+            return fallback;
+        }
+
+        if (token.getMessage() != null
+                && !token.getMessage().trim().isEmpty()) {
+
+            return fallback
+                    + ": "
+                    + token.getMessage();
+        }
+
+        if (token.getError() != null
+                && !token.getError().trim().isEmpty()) {
+
+            return fallback
+                    + ": "
+                    + token.getError();
+        }
+
+        return fallback;
+    }
+
+    private String encodeRedirectUri() {
+
+        try {
+
+            return URLEncoder.encode(
+                    redirectUri,
+                    StandardCharsets.UTF_8.name()
+            );
+
+        } catch (UnsupportedEncodingException e) {
+
+            throw new RuntimeException(
+                    "Erro ao codificar URL de retorno Shopee",
+                    e
+            );
+        }
     }
 
     private String generateSignature(

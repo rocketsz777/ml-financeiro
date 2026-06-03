@@ -10,6 +10,12 @@ public class ShopeeTokenResponse {
 
     private Long shop_id;
 
+    private String error;
+
+    private String message;
+
+    private String request_id;
+
     public String getAccess_token() {
         return access_token;
     }
@@ -48,5 +54,35 @@ public class ShopeeTokenResponse {
             Long shop_id
     ) {
         this.shop_id = shop_id;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(
+            String error
+    ) {
+        this.error = error;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(
+            String message
+    ) {
+        this.message = message;
+    }
+
+    public String getRequest_id() {
+        return request_id;
+    }
+
+    public void setRequest_id(
+            String request_id
+    ) {
+        this.request_id = request_id;
     }
 }

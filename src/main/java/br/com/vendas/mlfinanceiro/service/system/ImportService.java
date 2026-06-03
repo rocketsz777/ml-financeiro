@@ -3,6 +3,7 @@ package br.com.vendas.mlfinanceiro.service.importer;
 import br.com.vendas.mlfinanceiro.dto.ImportSalesResponse;
 import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
 import br.com.vendas.mlfinanceiro.service.marketplace.importer.MercadoLivreImportService;
+import br.com.vendas.mlfinanceiro.service.marketplace.importer.ShopeeImportService;
 import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +14,14 @@ public class ImportService {
 
     private final MercadoLivreAuthService mercadoLivreAuthService;
 
+    private final ShopeeImportService shopeeImportService;
+
     private final MarketplaceTokenService tokenService;
 
     public ImportService(
             MercadoLivreImportService mercadoLivreImportService,
             MercadoLivreAuthService mercadoLivreAuthService,
+            ShopeeImportService shopeeImportService,
             MarketplaceTokenService tokenService
     ) {
 
@@ -26,6 +30,9 @@ public class ImportService {
 
         this.mercadoLivreAuthService =
                 mercadoLivreAuthService;
+
+        this.shopeeImportService =
+                shopeeImportService;
 
         this.tokenService =
                 tokenService;
@@ -60,9 +67,9 @@ public class ImportService {
                     "SHOPEE"
             );
 
-            // Futuro:
-            // shopeeImported =
-            // shopeeImportService.importOrders();
+            shopeeImported =
+                    shopeeImportService
+                            .importOrders();
 
         } catch (Exception ignored) {
         }
