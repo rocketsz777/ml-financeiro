@@ -2,7 +2,6 @@ package br.com.vendas.mlfinanceiro.service.file;
 
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
-import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -18,9 +17,6 @@ public class FileStoreService {
 
     private static final String SALES_FILE =
             "vendas.csv";
-
-    private static final String STOCK_MOVEMENTS_FILE =
-            "stock_movements.csv";
 
     private final Path dataDir;
 
@@ -137,83 +133,6 @@ public class FileStoreService {
 
             throw new RuntimeException(
                     "Erro ao salvar vendas",
-                    e
-            );
-        }
-    }
-
-    // =========================================
-    // MOVIMENTAÇÕES DE ESTOQUE
-    // =========================================
-
-    public List<StockMovement> loadStockMovements() {
-
-        Path path =
-                dataDir.resolve(
-                        STOCK_MOVEMENTS_FILE
-                );
-
-        if (!Files.exists(path)) {
-
-            return new ArrayList<StockMovement>();
-        }
-
-        try {
-
-            return Files.readAllLines(path)
-                    .stream()
-                    .skip(1)
-                    .filter(
-                            line -> !line.trim().isEmpty()
-                    )
-                    .map(
-                            StockMovement::fromCsv
-                    )
-                    .collect(Collectors.toList());
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Erro ao carregar movimentações de estoque",
-                    e
-            );
-        }
-    }
-
-    public void saveStockMovements(
-            List<StockMovement> movements
-    ) {
-
-        Path path =
-                dataDir.resolve(
-                        STOCK_MOVEMENTS_FILE
-                );
-
-        List<String> lines =
-                new ArrayList<String>();
-
-        lines.add(
-                "sku;type;quantity;reference;createdAt"
-        );
-
-        for (StockMovement movement : movements) {
-
-            lines.add(
-                    movement.toCsv()
-            );
-        }
-
-        try {
-
-            Files.write(
-                    path,
-                    lines
-            );
-
-        } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Erro ao salvar movimentações",
                     e
             );
         }

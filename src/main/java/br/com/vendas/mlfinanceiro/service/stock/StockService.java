@@ -4,41 +4,40 @@ import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.domain.StockMovementType;
 import br.com.vendas.mlfinanceiro.dto.StockEntryRequest;
-import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
+import br.com.vendas.mlfinanceiro.repository.ProductRepository;
+import br.com.vendas.mlfinanceiro.repository.StockMovementRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class StockService {
 
-    private final FileStoreService fileStoreService;
+    private final ProductRepository productRepository;
+
+    private final StockMovementRepository stockMovementRepository;
 
     public StockService(
-            FileStoreService fileStoreService
+            ProductRepository productRepository,
+            StockMovementRepository stockMovementRepository
     ) {
 
-        this.fileStoreService =
-                fileStoreService;
+        this.productRepository =
+                productRepository;
+
+        this.stockMovementRepository =
+                stockMovementRepository;
     }
 
     public void addStock(
             StockEntryRequest request
     ) {
 
-        List<Product> products =
-                fileStoreService.loadProducts();
-
         Product product =
-                products.stream()
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                request.getSku()
-                                        )
+                productRepository
+                        .findBySku(
+                                request.getSku()
                         )
-                        .findFirst()
                         .orElseThrow(
                                 () -> new RuntimeException(
                                         "Produto não encontrado"
@@ -46,22 +45,19 @@ public class StockService {
                         );
 
         product.setStockQuantity(
-                product.getStockQuantity() +
-                        request.getQuantity()
+                product.getStockQuantity()
+                        + request.getQuantity()
         );
 
-        fileStoreService.saveProducts(
-                products
+        productRepository.save(
+                product
         );
-
-        List<StockMovement> movements =
-                fileStoreService.loadStockMovements();
 
         StockMovement movement =
                 new StockMovement();
 
         movement.setSku(
-                product.getSku()
+                request.getSku()
         );
 
         movement.setType(
@@ -76,22 +72,13 @@ public class StockService {
                 request.getReference()
         );
 
-        movement.setCreatedAt(
-                LocalDateTime.now()
-        );
-
-        movements.add(
+        stockMovementRepository.save(
                 movement
-        );
-
-        fileStoreService.saveStockMovements(
-                movements
         );
     }
 
     public List<StockMovement> listMovements() {
 
-        return fileStoreService
-                .loadStockMovements();
+        return stockMovementRepository.findAll();
     }
 }

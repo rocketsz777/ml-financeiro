@@ -2,6 +2,7 @@ package br.com.vendas.mlfinanceiro.service.report;
 
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.MonthlySummaryResponse;
+import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -13,7 +14,9 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.YearMonth;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,12 +24,18 @@ public class ReportService {
 
     private final FileStoreService fileStoreService;
 
+    private final SaleRepository saleRepository;
+
     public ReportService(
-            FileStoreService fileStoreService
+            FileStoreService fileStoreService,
+            SaleRepository saleRepository
     ) {
 
         this.fileStoreService =
                 fileStoreService;
+
+        this.saleRepository =
+                saleRepository;
     }
 
     public MonthlySummaryResponse monthlySummary(
@@ -34,7 +43,7 @@ public class ReportService {
     ) {
 
         List<Sale> sales =
-                fileStoreService.loadSales()
+                saleRepository.findAll()
                         .stream()
                         .filter(
                                 s -> YearMonth.from(
@@ -152,7 +161,9 @@ public class ReportService {
                             )
             );
 
-            products.add(item);
+            products.add(
+                    item
+            );
         }
 
         MonthlySummaryResponse response =
@@ -194,7 +205,9 @@ public class ReportService {
     ) {
 
         MonthlySummaryResponse summary =
-                monthlySummary(month);
+                monthlySummary(
+                        month
+                );
 
         Path output =
                 fileStoreService.getDataDir()
@@ -230,42 +243,105 @@ public class ReportService {
             int r = 0;
 
             Row h =
-                    resumo.createRow(r++);
+                    resumo.createRow(
+                            r++
+                    );
 
-            createHeaderCell(h, 0, "Mês", headerStyle);
-            createHeaderCell(h, 1, "Faturamento", headerStyle);
-            createHeaderCell(h, 2, "Custos", headerStyle);
-            createHeaderCell(h, 3, "Taxas ML", headerStyle);
-            createHeaderCell(h, 4, "Frete", headerStyle);
-            createHeaderCell(h, 5, "Lucro", headerStyle);
+            createHeaderCell(
+                    h,
+                    0,
+                    "Mês",
+                    headerStyle
+            );
+
+            createHeaderCell(
+                    h,
+                    1,
+                    "Faturamento",
+                    headerStyle
+            );
+
+            createHeaderCell(
+                    h,
+                    2,
+                    "Custos",
+                    headerStyle
+            );
+
+            createHeaderCell(
+                    h,
+                    3,
+                    "Taxas",
+                    headerStyle
+            );
+
+            createHeaderCell(
+                    h,
+                    4,
+                    "Frete",
+                    headerStyle
+            );
+
+            createHeaderCell(
+                    h,
+                    5,
+                    "Lucro",
+                    headerStyle
+            );
 
             Row row =
-                    resumo.createRow(r++);
+                    resumo.createRow(
+                            r++
+                    );
 
             row.createCell(0)
-                    .setCellValue(summary.getMonth());
+                    .setCellValue(
+                            summary.getMonth()
+                    );
 
             row.createCell(1)
-                    .setCellValue(summary.getTotalRevenue().doubleValue());
+                    .setCellValue(
+                            summary.getTotalRevenue()
+                                    .doubleValue()
+                    );
 
             row.createCell(2)
-                    .setCellValue(summary.getTotalCost().doubleValue());
+                    .setCellValue(
+                            summary.getTotalCost()
+                                    .doubleValue()
+                    );
 
             row.createCell(3)
-                    .setCellValue(summary.getTotalFees().doubleValue());
+                    .setCellValue(
+                            summary.getTotalFees()
+                                    .doubleValue()
+                    );
 
             row.createCell(4)
-                    .setCellValue(summary.getTotalShipping().doubleValue());
+                    .setCellValue(
+                            summary.getTotalShipping()
+                                    .doubleValue()
+                    );
 
             row.createCell(5)
-                    .setCellValue(summary.getTotalProfit().doubleValue());
+                    .setCellValue(
+                            summary.getTotalProfit()
+                                    .doubleValue()
+                    );
 
-            autoSize(resumo, 6);
+            autoSize(
+                    resumo,
+                    6
+            );
 
             try (OutputStream os =
-                         Files.newOutputStream(output)) {
+                         Files.newOutputStream(
+                                 output
+                         )) {
 
-                workbook.write(os);
+                workbook.write(
+                        os
+                );
             }
 
             return output;
@@ -286,12 +362,16 @@ public class ReportService {
         Font font =
                 workbook.createFont();
 
-        font.setBold(true);
+        font.setBold(
+                true
+        );
 
         CellStyle style =
                 workbook.createCellStyle();
 
-        style.setFont(font);
+        style.setFont(
+                font
+        );
 
         return style;
     }
@@ -304,11 +384,17 @@ public class ReportService {
     ) {
 
         Cell cell =
-                row.createCell(col);
+                row.createCell(
+                        col
+                );
 
-        cell.setCellValue(value);
+        cell.setCellValue(
+                value
+        );
 
-        cell.setCellStyle(style);
+        cell.setCellStyle(
+                style
+        );
     }
 
     private void autoSize(
@@ -318,7 +404,9 @@ public class ReportService {
 
         for (int i = 0; i < columns; i++) {
 
-            sheet.autoSizeColumn(i);
+            sheet.autoSizeColumn(
+                    i
+            );
         }
     }
 }

@@ -1,7 +1,10 @@
 package br.com.vendas.mlfinanceiro.service.marketplace.auth;
 
+import br.com.vendas.mlfinanceiro.domain.MarketplaceToken;
+import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -20,6 +23,25 @@ public class ShopeeAuthService {
     @Value("${shopee.redirect-uri}")
     private String redirectUri;
 
+    private final MarketplaceTokenService tokenService;
+
+    private final WebClient webClient;
+
+    public ShopeeAuthService(
+            MarketplaceTokenService tokenService
+    ) {
+
+        this.tokenService =
+                tokenService;
+
+        this.webClient =
+                WebClient.builder()
+                        .baseUrl(
+                                "https://partner.shopeemobile.com"
+                        )
+                        .build();
+    }
+
     public String generateAuthUrl() {
 
         long timestamp =
@@ -30,9 +52,9 @@ public class ShopeeAuthService {
                 "/api/v2/shop/auth_partner";
 
         String baseString =
-                partnerId +
-                        path +
-                        timestamp;
+                partnerId
+                        + path
+                        + timestamp;
 
         String sign =
                 generateSignature(
@@ -45,6 +67,30 @@ public class ShopeeAuthService {
                 + "&timestamp=" + timestamp
                 + "&sign=" + sign
                 + "&redirect=" + redirectUri;
+    }
+
+    public void saveAuthorizationCode(
+            String code,
+            String shopId
+    ) {
+
+        tokenService.save(
+                "SHOPEE",
+                shopId,
+                code,
+                "",
+                31536000L
+        );
+    }
+
+    public String getValidAccessToken() {
+
+        MarketplaceToken token =
+                tokenService.getByMarketplace(
+                        "SHOPEE"
+                );
+
+        return token.getAccessToken();
     }
 
     private String generateSignature(
