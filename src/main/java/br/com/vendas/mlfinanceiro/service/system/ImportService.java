@@ -1,4 +1,4 @@
-package br.com.vendas.mlfinanceiro.service.importer;
+package br.com.vendas.mlfinanceiro.service.system;
 
 import br.com.vendas.mlfinanceiro.dto.ImportSalesResponse;
 import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
@@ -51,6 +51,10 @@ public class ImportService {
 
         try {
 
+            System.out.println(
+                    "INICIANDO IMPORTAÇÃO ML"
+            );
+
             mercadoLivreAuthService
                     .getValidAccessToken();
 
@@ -58,10 +62,29 @@ public class ImportService {
                     mercadoLivreImportService
                             .importOrders();
 
-        } catch (Exception ignored) {
+            System.out.println(
+                    "IMPORTADOS ML: "
+                            + mercadoLivreImported
+            );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "ERRO MERCADO LIVRE:"
+            );
+
+            System.out.println(
+                    e.getMessage()
+            );
+
+            e.printStackTrace();
         }
 
         try {
+
+            System.out.println(
+                    "INICIANDO IMPORTAÇÃO SHOPEE"
+            );
 
             tokenService.getByMarketplace(
                     "SHOPEE"
@@ -71,7 +94,22 @@ public class ImportService {
                     shopeeImportService
                             .importOrders();
 
-        } catch (Exception ignored) {
+            System.out.println(
+                    "IMPORTADOS SHOPEE: "
+                            + shopeeImported
+            );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "ERRO SHOPEE:"
+            );
+
+            System.out.println(
+                    e.getMessage()
+            );
+
+            e.printStackTrace();
         }
 
         response.setMercadoLivreImported(
@@ -85,6 +123,11 @@ public class ImportService {
         response.setTotalImported(
                 mercadoLivreImported
                         + shopeeImported
+        );
+
+        System.out.println(
+                "TOTAL IMPORTADO: "
+                        + response.getTotalImported()
         );
 
         return response;
