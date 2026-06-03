@@ -45,14 +45,40 @@ public class MercadoLivreImportService {
         MercadoLivreOrderResponse response =
                 mercadoLivreClient.getOrders();
 
-        if (response == null
-                || response.getResults() == null) {
+        System.out.println(
+                "=== IMPORT ML ==="
+        );
+
+        if (response == null) {
+
+            System.out.println(
+                    "Response NULL"
+            );
 
             return 0;
         }
 
+        if (response.getResults() == null) {
+
+            System.out.println(
+                    "Results NULL"
+            );
+
+            return 0;
+        }
+
+        System.out.println(
+                "Pedidos encontrados: "
+                        + response.getResults().size()
+        );
+
         for (MercadoLivreOrderResult order
                 : response.getResults()) {
+
+            System.out.println(
+                    "Pedido encontrado: "
+                            + order.getId()
+            );
 
             String orderId =
                     String.valueOf(
@@ -66,6 +92,11 @@ public class MercadoLivreImportService {
 
             if (alreadyImported) {
 
+                System.out.println(
+                        "Pedido já existe: "
+                                + orderId
+                );
+
                 continue;
             }
 
@@ -77,6 +108,11 @@ public class MercadoLivreImportService {
             if (detail == null
                     || detail.getOrder_items() == null
                     || detail.getOrder_items().isEmpty()) {
+
+                System.out.println(
+                        "Pedido sem itens: "
+                                + orderId
+                );
 
                 continue;
             }
@@ -153,6 +189,11 @@ public class MercadoLivreImportService {
 
             sale.calculateProfit();
 
+            System.out.println(
+                    "Salvando pedido: "
+                            + orderId
+            );
+
             saleRepository.save(
                     sale
             );
@@ -160,6 +201,10 @@ public class MercadoLivreImportService {
             importedCount++;
         }
 
+        System.out.println(
+                "Total importado: "
+                        + importedCount
+        );
+
         return importedCount;
     }
-}
