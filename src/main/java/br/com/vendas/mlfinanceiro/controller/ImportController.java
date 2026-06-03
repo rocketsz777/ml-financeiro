@@ -2,7 +2,6 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.dto.ImportSalesResponse;
 import br.com.vendas.mlfinanceiro.service.system.ImportService;
-import br.com.vendas.mlfinanceiro.service.system.ImportService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 

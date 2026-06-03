@@ -5,6 +5,7 @@ import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrder
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,16 +20,10 @@ public class MercadoLivreClient {
     public MercadoLivreClient(
             MercadoLivreAuthService authService
     ) {
-
-        this.authService =
-                authService;
-
-        this.webClient =
-                WebClient.builder()
-                        .baseUrl(
-                                "https://api.mercadolibre.com"
-                        )
-                        .build();
+        this.authService = authService;
+        this.webClient = WebClient.builder()
+                .baseUrl("https://api.mercadolibre.com")
+                .build();
     }
 
     public String getMyUserData() {
@@ -49,6 +44,38 @@ public class MercadoLivreClient {
                 .block();
     }
 
+    // Busca o ID do vendedor autenticado via /users/me
+    private String getSellerId() {
+
+        String accessToken =
+                authService.getValidAccessToken();
+
+        MercadoLivreUserResponse user =
+                webClient.get()
+                        .uri("/users/me")
+                        .header(
+                                HttpHeaders.AUTHORIZATION,
+                                "Bearer " + accessToken
+                        )
+                        .retrieve()
+                        .bodyToMono(
+                                MercadoLivreUserResponse.class
+                        )
+                        .block();
+
+        if (user == null || user.getId() == null) {
+            throw new BusinessException(
+                    "Não foi possível obter o ID do vendedor"
+            );
+        }
+
+        System.out.println(
+                "Seller ID obtido: " + user.getId()
+        );
+
+        return String.valueOf(user.getId());
+    }
+
     public MercadoLivreOrderResponse getOrders() {
 
         validateAuthentication();
@@ -56,11 +83,17 @@ public class MercadoLivreClient {
         String accessToken =
                 authService.getValidAccessToken();
 
+        // CORREÇÃO: o endpoint /orders/search exige o parâmetro
+        // seller obrigatoriamente, caso contrário retorna vazio
+        String sellerId = getSellerId();
+
         return webClient.get()
                 .uri(uriBuilder ->
                         uriBuilder
                                 .path("/orders/search")
+                                .queryParam("seller", sellerId)
                                 .queryParam("sort", "date_desc")
+                                .queryParam("order.status", "paid")
                                 .build()
                 )
                 .header(
@@ -107,6 +140,21 @@ public class MercadoLivreClient {
             throw new BusinessException(
                     "Mercado Livre não autenticado"
             );
+        }
+    }
+
+    // DTO interno para deserializar apenas o ID do /users/me
+    static class MercadoLivreUserResponse {
+
+        @JsonProperty("id")
+        private Long id;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
         }
     }
 }

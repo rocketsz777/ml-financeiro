@@ -15,26 +15,21 @@ public class MarketplaceFactory {
             Marketplace,
             MarketplaceIntegration
             > integrations =
-            new HashMap<
-                    Marketplace,
-                    MarketplaceIntegration
-                    >();
+            new HashMap<>();
 
-    public MarketplaceFactory() {
-
-        register(
-                new MercadoLivreIntegration()
-        );
-
-        register(
-                new ShopeeIntegration()
-        );
+    // CORREÇÃO: injetar via Spring em vez de usar new
+    // para que as dependências de cada integração sejam resolvidas
+    public MarketplaceFactory(
+            MercadoLivreIntegration mercadoLivreIntegration,
+            ShopeeIntegration shopeeIntegration
+    ) {
+        register(mercadoLivreIntegration);
+        register(shopeeIntegration);
     }
 
     private void register(
             MarketplaceIntegration integration
     ) {
-
         integrations.put(
                 integration.getMarketplace(),
                 integration
@@ -44,14 +39,10 @@ public class MarketplaceFactory {
     public MarketplaceIntegration getIntegration(
             Marketplace marketplace
     ) {
-
         MarketplaceIntegration integration =
-                integrations.get(
-                        marketplace
-                );
+                integrations.get(marketplace);
 
         if (integration == null) {
-
             throw new RuntimeException(
                     "Marketplace não suportado"
             );

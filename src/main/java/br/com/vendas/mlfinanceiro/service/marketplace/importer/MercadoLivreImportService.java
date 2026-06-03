@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class MercadoLivreImportService {
@@ -30,41 +32,34 @@ public class MercadoLivreImportService {
             MercadoLivreClient mercadoLivreClient,
             SaleRepository saleRepository
     ) {
-
-        this.mercadoLivreClient =
-                mercadoLivreClient;
-
-        this.saleRepository =
-                saleRepository;
+        this.mercadoLivreClient = mercadoLivreClient;
+        this.saleRepository = saleRepository;
     }
 
+    // Retorna contagem — mantido para compatibilidade com ImportController
     public int importOrders() {
+        return importAndReturnSales().size();
+    }
 
-        int importedCount = 0;
+    // Importa e retorna a lista de vendas salvas
+    // Usado por MercadoLivreIntegration.importSales()
+    public List<Sale> importAndReturnSales() {
+
+        List<Sale> savedSales = new ArrayList<>();
+
+        System.out.println("=== IMPORT ML ===");
 
         MercadoLivreOrderResponse response =
                 mercadoLivreClient.getOrders();
 
-        System.out.println(
-                "=== IMPORT ML ==="
-        );
-
         if (response == null) {
-
-            System.out.println(
-                    "Response NULL"
-            );
-
-            return 0;
+            System.out.println("Response NULL");
+            return savedSales;
         }
 
         if (response.getResults() == null) {
-
-            System.out.println(
-                    "Results NULL"
-            );
-
-            return 0;
+            System.out.println("Results NULL");
+            return savedSales;
         }
 
         System.out.println(
@@ -76,27 +71,19 @@ public class MercadoLivreImportService {
                 : response.getResults()) {
 
             System.out.println(
-                    "Pedido encontrado: "
-                            + order.getId()
+                    "Processando pedido: " + order.getId()
             );
 
             String orderId =
-                    String.valueOf(
-                            order.getId()
-                    );
+                    String.valueOf(order.getId());
 
             boolean alreadyImported =
-                    saleRepository.existsByOrderId(
-                            orderId
-                    );
+                    saleRepository.existsByOrderId(orderId);
 
             if (alreadyImported) {
-
                 System.out.println(
-                        "Pedido já existe: "
-                                + orderId
+                        "Pedido já existe: " + orderId
                 );
-
                 continue;
             }
 
@@ -110,10 +97,8 @@ public class MercadoLivreImportService {
                     || detail.getOrder_items().isEmpty()) {
 
                 System.out.println(
-                        "Pedido sem itens: "
-                                + orderId
+                        "Pedido sem itens: " + orderId
                 );
-
                 continue;
             }
 
@@ -132,80 +117,35 @@ public class MercadoLivreImportService {
                             ? payment.getTransaction_amount()
                             : BigDecimal.ZERO;
 
-            Sale sale =
-                    new Sale();
+            Sale sale = new Sale();
 
-            sale.setOrderId(
-                    orderId
-            );
-
-            sale.setMarketplace(
-                    Marketplace.MERCADO_LIVRE
-            );
-
-            sale.setProductName(
-                    firstItem.getItem().getTitle()
-            );
-
-            sale.setSku(
-                    firstItem.getItem().getId()
-            );
-
-            sale.setQuantity(
-                    firstItem.getQuantity()
-            );
-
-            sale.setSoldAt(
-                    LocalDateTime.now()
-            );
-
-            sale.setGrossAmount(
-                    liquidAmount
-            );
-
-            sale.setNetAmount(
-                    liquidAmount
-            );
-
-            sale.setUnitSalePrice(
-                    liquidAmount
-            );
-
-            sale.setMarketplaceFee(
-                    BigDecimal.ZERO
-            );
-
-            sale.setShippingCost(
-                    BigDecimal.ZERO
-            );
-
-            sale.setExtraCosts(
-                    BigDecimal.ZERO
-            );
-
-            sale.setProductCost(
-                    BigDecimal.ZERO
-            );
-
+            sale.setOrderId(orderId);
+            sale.setMarketplace(Marketplace.MERCADO_LIVRE);
+            sale.setProductName(firstItem.getItem().getTitle());
+            sale.setSku(firstItem.getItem().getId());
+            sale.setQuantity(firstItem.getQuantity());
+            sale.setSoldAt(LocalDateTime.now());
+            sale.setGrossAmount(liquidAmount);
+            sale.setNetAmount(liquidAmount);
+            sale.setUnitSalePrice(liquidAmount);
+            sale.setMarketplaceFee(BigDecimal.ZERO);
+            sale.setShippingCost(BigDecimal.ZERO);
+            sale.setExtraCosts(BigDecimal.ZERO);
+            sale.setProductCost(BigDecimal.ZERO);
             sale.calculateProfit();
 
             System.out.println(
-                    "Salvando pedido: "
-                            + orderId
+                    "Salvando pedido: " + orderId
             );
 
-            saleRepository.save(
-                    sale
-            );
-
-            importedCount++;
+            Sale saved = saleRepository.save(sale);
+            savedSales.add(saved);
         }
 
         System.out.println(
-                "Total importado: "
-                        + importedCount
+                "Total importado: " + savedSales.size()
         );
 
-        return importedCount;
+        return savedSales;
     }
 }
