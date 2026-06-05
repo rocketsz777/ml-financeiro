@@ -27,9 +27,10 @@ mercadolivre:
   redirect-uri: ${MERCADOLIVRE_REDIRECT_URI:https://rocket-imports-api.onrender.com/oauth/mercadolivre/callback}
 
 shopee:
-  partner-id: ${SHOPEE_PARTNER_ID:0000}
-  partner-key: ${SHOPEE_PARTNER_KEY:0000}
+  partner-id: ${SHOPEE_PARTNER_ID}
+  partner-key: ${SHOPEE_PARTNER_KEY}
   redirect-uri: ${SHOPEE_REDIRECT_URI:https://rocket-imports-api.onrender.com/shopee/callback}
 
 app:
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   data-dir: ./data

@@ -22,9 +22,11 @@ public class ShopeeImportController {
     @GetMapping("/import")
     public String importOrders() {
 
-        shopeeImportService
-                .simulateImport();
+        int imported =
+                shopeeImportService
+                        .importOrders();
 
-        return "Pedidos Shopee importados";
+        return "Pedidos Shopee importados: "
+                + imported;
     }
 }

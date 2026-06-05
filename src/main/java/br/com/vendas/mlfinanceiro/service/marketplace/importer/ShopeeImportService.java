@@ -1,86 +1,230 @@
 package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
-import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.domain.Sale;
-import br.com.vendas.mlfinanceiro.domain.StockMovement;
-import br.com.vendas.mlfinanceiro.domain.StockMovementType;
-import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
+import br.com.vendas.mlfinanceiro.integration.shopee.ShopeeClient;
+import br.com.vendas.mlfinanceiro.repository.SaleRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.ZoneId;
 
 @Service
 public class ShopeeImportService {
 
-    private final FileStoreService fileStoreService;
+    private final ShopeeClient shopeeClient;
+
+    private final SaleRepository saleRepository;
 
     public ShopeeImportService(
-            FileStoreService fileStoreService
+            ShopeeClient shopeeClient,
+            SaleRepository saleRepository
     ) {
 
-        this.fileStoreService =
-                fileStoreService;
+        this.shopeeClient =
+                shopeeClient;
+
+        this.saleRepository =
+                saleRepository;
     }
 
-    public void simulateImport() {
+    public int importOrders() {
 
-        List<Sale> sales =
-                fileStoreService.loadSales();
+        int importedCount =
+                0;
 
-        List<Product> products =
-                fileStoreService.loadProducts();
+        String cursor =
+                null;
 
-        List<StockMovement> movements =
-                fileStoreService.loadStockMovements();
+        boolean hasMore =
+                true;
+
+        int pagesRead =
+                0;
+
+        while (hasMore
+                && pagesRead < 5) {
+
+            JsonNode orderListResponse =
+                    shopeeClient.getOrderList(
+                            cursor
+                    );
+
+            JsonNode response =
+                    orderListResponse == null
+                            ? null
+                            : orderListResponse.get(
+                                    "response"
+                            );
+
+            JsonNode orders =
+                    response == null
+                            ? null
+                            : response.get(
+                                    "order_list"
+                            );
+
+            if (orders == null
+                    || !orders.isArray()) {
+
+                return importedCount;
+            }
+
+            for (JsonNode order : orders) {
+
+                String orderSn =
+                        order.path(
+                                "order_sn"
+                        ).asText();
+
+                if (orderSn.trim().isEmpty()
+                        || saleRepository.existsByOrderId(
+                                orderSn
+                        )) {
+
+                    continue;
+                }
+
+                if (importOrderDetail(orderSn)) {
+
+                    importedCount++;
+                }
+            }
+
+            hasMore =
+                    response != null
+                            && response.path(
+                                    "more"
+                            ).asBoolean(false);
+
+            cursor =
+                    response == null
+                            ? null
+                            : response.path(
+                                    "next_cursor"
+                            ).asText(null);
+
+            pagesRead++;
+        }
+
+        return importedCount;
+    }
+
+    private boolean importOrderDetail(
+            String orderSn
+    ) {
+
+        JsonNode detailResponse =
+                shopeeClient.getOrderDetail(
+                        orderSn
+                );
+
+        JsonNode orders =
+                detailResponse == null
+                        ? null
+                        : detailResponse.path(
+                                "response"
+                        ).path(
+                                "order_list"
+                        );
+
+        if (orders == null
+                || !orders.isArray()
+                || orders.size() == 0) {
+
+            return false;
+        }
+
+        JsonNode detail =
+                orders.get(0);
+
+        JsonNode firstItem =
+                detail.path(
+                        "item_list"
+                ).isArray()
+                        && detail.path(
+                                "item_list"
+                        ).size() > 0
+                        ? detail.path(
+                                "item_list"
+                        ).get(0)
+                        : null;
+
+        if (firstItem == null) {
+
+            return false;
+        }
+
+        int quantity =
+                firstItem.path(
+                        "model_quantity_purchased"
+                ).asInt(
+                        firstItem.path(
+                                "quantity_purchased"
+                        ).asInt(1)
+                );
+
+        BigDecimal totalAmount =
+                BigDecimal.valueOf(
+                        detail.path(
+                                "total_amount"
+                        ).asDouble(0)
+                );
 
         Sale sale =
                 new Sale();
 
         sale.setOrderId(
-                "SHOPEE-001"
-        );
-
-        sale.setSku(
-                "BOL001"
-        );
-
-        sale.setProductName(
-                "Bolinha Anti Stress"
+                orderSn
         );
 
         sale.setMarketplace(
                 Marketplace.SHOPEE
         );
 
+        sale.setProductName(
+                firstItem.path(
+                        "item_name"
+                ).asText("Pedido Shopee")
+        );
+
+        sale.setSku(
+                firstItem.path(
+                        "model_sku"
+                ).asText(
+                        firstItem.path(
+                                "item_id"
+                        ).asText(orderSn)
+                )
+        );
+
         sale.setQuantity(
-                1
+                quantity
+        );
+
+        sale.setSoldAt(
+                getSoldAt(detail)
         );
 
         sale.setGrossAmount(
-                new BigDecimal(
-                        "49.90"
-                )
+                totalAmount
         );
 
         sale.setNetAmount(
-                new BigDecimal(
-                        "42.00"
-                )
+                totalAmount
         );
 
         sale.setUnitSalePrice(
-                new BigDecimal(
-                        "49.90"
-                )
-        );
-
-        sale.setProductCost(
-                new BigDecimal(
-                        "20.50"
-                )
+                quantity > 0
+                        ? totalAmount.divide(
+                                BigDecimal.valueOf(quantity),
+                                2,
+                                java.math.RoundingMode.HALF_UP
+                        )
+                        : totalAmount
         );
 
         sale.setMarketplaceFee(
@@ -95,74 +239,42 @@ public class ShopeeImportService {
                 BigDecimal.ZERO
         );
 
-        sale.calculateProfit();
-
-        sale.setSoldAt(
-                LocalDateTime.now()
+        sale.setProductCost(
+                BigDecimal.ZERO
         );
 
-        sales.add(
+        sale.calculateProfit();
+
+        saleRepository.save(
                 sale
         );
 
-        Product matchedProduct =
-                products.stream()
-                        .filter(
-                                p -> p.getSku()
-                                        .equalsIgnoreCase(
-                                                sale.getSku()
-                                        )
-                        )
-                        .findFirst()
-                        .orElse(
-                                null
-                        );
+        return true;
+    }
 
-        if (matchedProduct != null) {
+    private LocalDateTime getSoldAt(
+            JsonNode detail
+    ) {
 
-            matchedProduct.setStockQuantity(
-                    matchedProduct.getStockQuantity()
-                            - sale.getQuantity()
-            );
+        long timestamp =
+                detail.path(
+                        "pay_time"
+                ).asLong(
+                        detail.path(
+                                "create_time"
+                        ).asLong(0)
+                );
 
-            StockMovement movement =
-                    new StockMovement();
+        if (timestamp <= 0) {
 
-            movement.setSku(
-                    matchedProduct.getSku()
-            );
-
-            movement.setType(
-                    StockMovementType.SALE
-            );
-
-            movement.setQuantity(
-                    -sale.getQuantity()
-            );
-
-            movement.setReference(
-                    sale.getOrderId()
-            );
-
-            movement.setCreatedAt(
-                    LocalDateTime.now()
-            );
-
-            movements.add(
-                    movement
-            );
-
-            fileStoreService.saveStockMovements(
-                    movements
-            );
+            return LocalDateTime.now();
         }
 
-        fileStoreService.saveProducts(
-                products
-        );
-
-        fileStoreService.saveSales(
-                sales
+        return LocalDateTime.ofInstant(
+                Instant.ofEpochSecond(
+                        timestamp
+                ),
+                ZoneId.systemDefault()
         );
     }
 }

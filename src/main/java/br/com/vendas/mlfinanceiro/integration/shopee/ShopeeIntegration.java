@@ -4,15 +4,18 @@ import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.marketplace.MarketplaceIntegration;
 
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
+// CORREÇÃO: adicionado @Component para registro no Spring
+@Component
 public class ShopeeIntegration
         implements MarketplaceIntegration {
 
     @Override
     public Marketplace getMarketplace() {
-
         return Marketplace.SHOPEE;
     }
 
@@ -23,6 +26,8 @@ public class ShopeeIntegration
                 "Importando vendas Shopee..."
         );
 
+        // TODO: implementar importação real da Shopee
+        // igual ao MercadoLivreIntegration quando estiver pronto
         return new ArrayList<Sale>();
     }
 }

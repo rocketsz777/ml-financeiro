@@ -3,16 +3,22 @@ package br.com.vendas.mlfinanceiro.service.marketplace.token;
 import br.com.vendas.mlfinanceiro.domain.MarketplaceToken;
 import br.com.vendas.mlfinanceiro.exception.ResourceNotFoundException;
 import br.com.vendas.mlfinanceiro.repository.MarketplaceTokenRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 public class MarketplaceTokenService {
 
     private final MarketplaceTokenRepository repository;
+
+    public MarketplaceTokenService(
+            MarketplaceTokenRepository repository
+    ) {
+
+        this.repository =
+                repository;
+    }
 
     public MarketplaceToken save(
             String marketplace,
