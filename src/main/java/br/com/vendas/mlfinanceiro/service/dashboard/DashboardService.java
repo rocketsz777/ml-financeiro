@@ -43,17 +43,96 @@ public class DashboardService {
         LocalDateTime now =
                 LocalDateTime.now();
 
-        LocalDateTime limitDate =
+        if (period == null) {
 
-                period == PeriodFilter.WEEK
+            period = PeriodFilter.MONTH;
+        }
 
-                        ?
+        LocalDateTime startDate;
+        LocalDateTime endDate = now;
 
-                        now.minusDays(7)
+        switch (period) {
 
-                        :
+            case DAY:
 
-                        now.minusDays(30);
+                startDate =
+                        now.toLocalDate()
+                                .atStartOfDay();
+
+                break;
+
+            case WEEK:
+
+                startDate =
+                        now.toLocalDate()
+                                .with(java.time.DayOfWeek.MONDAY)
+                                .atStartOfDay();
+
+                break;
+
+            case PREVIOUS_WEEK:
+
+                startDate =
+                        now.toLocalDate()
+                                .with(java.time.DayOfWeek.MONDAY)
+                                .minusWeeks(1)
+                                .atStartOfDay();
+
+                endDate =
+                        startDate
+                                .plusDays(6)
+                                .withHour(23)
+                                .withMinute(59)
+                                .withSecond(59);
+
+                break;
+
+            case MONTH:
+
+                startDate =
+                        now.withDayOfMonth(1)
+                                .toLocalDate()
+                                .atStartOfDay();
+
+                break;
+
+            case PREVIOUS_MONTH:
+
+                YearMonth previousMonth =
+                        YearMonth.now()
+                                .minusMonths(1);
+
+                startDate =
+                        previousMonth
+                                .atDay(1)
+                                .atStartOfDay();
+
+                endDate =
+                        previousMonth
+                                .atEndOfMonth()
+                                .atTime(23, 59, 59);
+
+                break;
+
+            case YEAR:
+
+                startDate =
+                        now.withDayOfYear(1)
+                                .toLocalDate()
+                                .atStartOfDay();
+
+                break;
+
+            default:
+
+                startDate =
+                        now.withDayOfMonth(1)
+                                .toLocalDate()
+                                .atStartOfDay();
+        }
+
+        final LocalDateTime finalStartDate = startDate;
+        final LocalDateTime finalEndDate = endDate;
 
         List<Sale> filteredSales =
 
@@ -62,11 +141,16 @@ public class DashboardService {
                         .filter(
                                 sale -> sale.getSoldAt() != null
                         )
+                        .filter(
+                                sale ->
+                                        !sale.getSoldAt()
+                                                .isBefore(finalStartDate)
+                        )
 
                         .filter(
                                 sale ->
-                                        sale.getSoldAt()
-                                                .isAfter(limitDate)
+                                        !sale.getSoldAt()
+                                                .isAfter(finalEndDate)
                         )
 
                         .filter(
