@@ -1,13 +1,18 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 
 public class MercadoLivreOrderItem {
 
     private MercadoLivreItem item;
     private Integer quantity;
-    private BigDecimal unit_price; // ADICIONADO: Preço cobrado por unidade do produto
-    private BigDecimal sale_fee;   // ADICIONADO: Tarifa de venda / Comissão da plataforma
+
+    @JsonProperty("unit_price")
+    private BigDecimal unitPrice;
+
+    @JsonProperty("sale_fee")
+    private BigDecimal saleFee;
 
     public MercadoLivreItem getItem() {
         return item;
@@ -25,19 +30,19 @@ public class MercadoLivreOrderItem {
         this.quantity = quantity;
     }
 
-    public BigDecimal getUnit_price() {
-        return unit_price;
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
     }
 
-    public void setUnit_price(BigDecimal unit_price) {
-        this.unit_price = unit_price;
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
     }
 
-    public BigDecimal getSale_fee() {
-        return sale_fee;
+    public BigDecimal getSaleFee() {
+        return saleFee;
     }
 
-    public void setSale_fee(BigDecimal sale_fee) {
-        this.sale_fee = sale_fee;
+    public void setSaleFee(BigDecimal saleFee) {
+        this.saleFee = saleFee;
     }
 }

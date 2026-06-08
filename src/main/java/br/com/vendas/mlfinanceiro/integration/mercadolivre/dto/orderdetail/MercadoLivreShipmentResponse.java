@@ -15,9 +15,7 @@ public class MercadoLivreShipmentResponse {
         this.costs = costs;
     }
 
-    // Classe interna para mapear as regras de custos do envio
     public static class ShipmentCosts {
-
         @JsonProperty("sender_cost")
         private BigDecimal senderCost;
 

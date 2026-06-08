@@ -1,5 +1,6 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -7,10 +8,16 @@ public class MercadoLivreOrderDetail {
 
     private Long id;
     private String status;
-    private BigDecimal total_amount;
-    private List<MercadoLivreOrderItem> order_items;
+
+    @JsonProperty("total_amount")
+    private BigDecimal totalAmount;
+
+    @JsonProperty("order_items")
+    private List<MercadoLivreOrderItem> orderItems;
+
     private List<MercadoLivrePayment> payments;
-    private Shipping shipping; // ADICIONADO: Objeto de ligação logística do pedido
+
+    private Shipping shipping;
 
     public Long getId() {
         return id;
@@ -28,20 +35,20 @@ public class MercadoLivreOrderDetail {
         this.status = status;
     }
 
-    public BigDecimal getTotal_amount() {
-        return total_amount;
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
-    public void setTotal_amount(BigDecimal total_amount) {
-        this.total_amount = total_amount;
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
-    public List<MercadoLivreOrderItem> getOrder_items() {
-        return order_items;
+    public List<MercadoLivreOrderItem> getOrderItems() {
+        return orderItems;
     }
 
-    public void setOrder_items(List<MercadoLivreOrderItem> order_items) {
-        this.order_items = order_items;
+    public void setOrderItems(List<MercadoLivreOrderItem> orderItems) {
+        this.orderItems = orderItems;
     }
 
     public List<MercadoLivrePayment> getPayments() {
@@ -60,7 +67,6 @@ public class MercadoLivreOrderDetail {
         this.shipping = shipping;
     }
 
-    // ADICIONADO: Classe estática aninhada para expor o ID do frete (Shipment ID)
     public static class Shipping {
         private Long id;
 
