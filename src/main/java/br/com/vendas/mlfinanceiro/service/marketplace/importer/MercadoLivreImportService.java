@@ -2,18 +2,13 @@ package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;
-
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.MercadoLivreClient;
-
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResponse;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResult;
-
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderItem;
-import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivrePayment;
-
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreShipmentResponse;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
-
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,7 +20,6 @@ import java.util.List;
 public class MercadoLivreImportService {
 
     private final MercadoLivreClient mercadoLivreClient;
-
     private final SaleRepository saleRepository;
 
     public MercadoLivreImportService(
@@ -67,15 +61,13 @@ public class MercadoLivreImportService {
                         + response.getResults().size()
         );
 
-        for (MercadoLivreOrderResult order
-                : response.getResults()) {
+        for (MercadoLivreOrderResult order : response.getResults()) {
 
             System.out.println(
                     "Processando pedido: " + order.getId()
             );
 
-            String orderId =
-                    String.valueOf(order.getId());
+            String orderId = String.valueOf(order.getId());
 
             boolean alreadyImported =
                     saleRepository.existsByOrderId(orderId);
@@ -88,9 +80,7 @@ public class MercadoLivreImportService {
             }
 
             MercadoLivreOrderDetail detail =
-                    mercadoLivreClient.getOrderById(
-                            order.getId()
-                    );
+                    mercadoLivreClient.getOrderById(order.getId());
 
             if (detail == null
                     || detail.getOrder_items() == null
@@ -105,37 +95,71 @@ public class MercadoLivreImportService {
             MercadoLivreOrderItem firstItem =
                     detail.getOrder_items().get(0);
 
-            MercadoLivrePayment payment =
-                    detail.getPayments() != null
-                            && !detail.getPayments().isEmpty()
-                            ? detail.getPayments().get(0)
-                            : null;
+            // =================================================================
+            // 🛠️ NOVA RESTRUTURAÇÃO DO CÁLCULO FINANCEIRO (MERCADO LIVRE)
+            // =================================================================
 
-            BigDecimal liquidAmount =
-                    payment != null
-                            && payment.getNet_received_amount() != null
-                            ? payment.getNet_received_amount()
-                            : BigDecimal.ZERO;
+            // 1. Tratamento do Preço Unitário e Quantidade
+            BigDecimal unitPrice = firstItem.getUnit_price() != null
+                    ? firstItem.getUnit_price()
+                    : BigDecimal.ZERO;
 
+            int quantity = firstItem.getQuantity() != null ? firstItem.getQuantity() : 1;
+
+            // Valor Bruto Total do Item (Preço Unitário * Quantidade)
+            BigDecimal grossAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
+
+            // 2. Coleta da Tarifa de Venda da Plataforma (Comissão)
+            BigDecimal marketplaceFee = firstItem.getSale_fee() != null
+                    ? firstItem.getSale_fee()
+                    : BigDecimal.ZERO;
+
+// 3. Coleta do Custo de Frete (Buscando via API do recurso /shipments se houver)
+            BigDecimal shippingCost = BigDecimal.ZERO;
+            if (detail.getShipping() != null && detail.getShipping().getId() != null) {
+                try {
+                    // CORREÇÃO: Alterado de 'var' para o tipo explícito MercadoLivreShipmentResponse
+                    MercadoLivreShipmentResponse shipmentData =
+                            mercadoLivreClient.getShipmentById(detail.getShipping().getId());
+
+                    if (shipmentData != null && shipmentData.getCosts() != null && shipmentData.getCosts().getSenderCost() != null) {
+                        shippingCost = shipmentData.getCosts().getSenderCost();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Erro ao buscar frete para o envio " + detail.getShipping().getId() + ": " + e.getMessage());
+                }
+            }
+            // 4. Matemática exata do Valor Líquido Real que entra na conta
+            BigDecimal netAmount = grossAmount.subtract(marketplaceFee).subtract(shippingCost);
+
+            // =================================================================
+            // 💾 MAPEAMENTO INDIVIDUALIZADO DAS COLUNAS DO BANCO DE DADOS
+            // =================================================================
             Sale sale = new Sale();
 
             sale.setOrderId(orderId);
             sale.setMarketplace(Marketplace.MERCADO_LIVRE);
             sale.setProductName(firstItem.getItem().getTitle());
             sale.setSku(firstItem.getItem().getId());
-            sale.setQuantity(firstItem.getQuantity());
+            sale.setQuantity(quantity);
             sale.setSoldAt(LocalDateTime.now());
-            sale.setGrossAmount(liquidAmount);
-            sale.setNetAmount(liquidAmount);
-            sale.setUnitSalePrice(liquidAmount);
-            sale.setMarketplaceFee(BigDecimal.ZERO);
-            sale.setShippingCost(BigDecimal.ZERO);
+
+            // Atribuição correta de cada indicador financeiro
+            sale.setGrossAmount(grossAmount);         // Preço total dos produtos
+            sale.setUnitSalePrice(unitPrice);         // Preço cobrado por unidade
+            sale.setMarketplaceFee(marketplaceFee);   // Taxa de comissão do ML cobrada
+            sale.setShippingCost(shippingCost);       // Custo de frete cobrado do vendedor
+            sale.setNetAmount(netAmount);             // Valor líquido final consolidado 💎
+
+            // Custos locais/internos (para preenchimento posterior se aplicável)
             sale.setExtraCosts(BigDecimal.ZERO);
             sale.setProductCost(BigDecimal.ZERO);
+
+            // Calcula o Lucro Real Interno (netAmount - productCost - extraCosts)
             sale.calculateProfit();
 
             System.out.println(
-                    "Salvando pedido: " + orderId
+                    "Salvando pedido: " + orderId + " | Valor Líquido Calculado: R$ " + netAmount
             );
 
             Sale saved = saleRepository.save(sale);

@@ -3,6 +3,7 @@ package br.com.vendas.mlfinanceiro.integration.mercadolivre;
 import br.com.vendas.mlfinanceiro.exception.BusinessException;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.MercadoLivreOrderResponse;
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreOrderDetail;
+import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreShipmentResponse;
 import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthService;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -156,5 +157,18 @@ public class MercadoLivreClient {
         public void setId(Long id) {
             this.id = id;
         }
+    }
+
+    public MercadoLivreShipmentResponse getShipmentById(Long shippingId) {
+        validateAuthentication();
+
+        String accessToken = authService.getValidAccessToken();
+
+        return webClient.get()
+                .uri("/shipments/" + shippingId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .bodyToMono(MercadoLivreShipmentResponse.class)
+                .block();
     }
 }
