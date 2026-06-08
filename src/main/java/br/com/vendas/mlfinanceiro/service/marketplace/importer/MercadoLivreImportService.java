@@ -113,8 +113,8 @@ public class MercadoLivreImportService {
 
             BigDecimal liquidAmount =
                     payment != null
-                            && payment.getTransaction_amount() != null
-                            ? payment.getTransaction_amount()
+                            && payment.getNet_received_amount() != null
+                            ? payment.getNet_received_amount()
                             : BigDecimal.ZERO;
 
             Sale sale = new Sale();

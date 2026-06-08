@@ -12,6 +12,18 @@ public class MercadoLivrePayment {
 
     private BigDecimal marketplace_fee;
 
+    private BigDecimal net_received_amount;
+
+    public BigDecimal getNet_received_amount() {
+        return net_received_amount;
+    }
+
+    public void setNet_received_amount(
+            BigDecimal net_received_amount
+    ) {
+        this.net_received_amount = net_received_amount;
+    }
+
     public Long getId() {
 
         return id;
