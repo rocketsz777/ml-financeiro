@@ -71,23 +71,56 @@ public class MercadoLivreImportService {
 
             // Captura da Tarifa Comercial (Comissão ML)
             BigDecimal fee = BigDecimal.ZERO;
-            if (payment != null && payment.getMarketplaceFee() != null) {
+
+            if (payment != null
+                    && payment.getMarketplaceFee() != null
+                    && payment.getMarketplaceFee().compareTo(BigDecimal.ZERO) > 0) {
+
                 fee = payment.getMarketplaceFee();
+
             } else if (firstItem.getSaleFee() != null) {
-                fee = firstItem.getSaleFee().multiply(new BigDecimal(quantity));
+
+                fee = firstItem.getSaleFee()
+                        .multiply(new BigDecimal(quantity));
             }
 
-            // Captura do Custo de Envio Logístico (Frete contratado)
             BigDecimal shippingCost = BigDecimal.ZERO;
-            Long shippingId = (detail.getShipping() != null) ? detail.getShipping().getId() : null;
+
+            Long shippingId =
+                    detail.getShipping() != null
+                            ? detail.getShipping().getId()
+                            : null;
+
             if (shippingId != null) {
+
                 try {
-                    MercadoLivreShipmentResponse shipmentData = mercadoLivreClient.getShipmentById(shippingId);
-                    if (shipmentData != null && shipmentData.getCosts() != null && shipmentData.getCosts().getSenderCost() != null) {
-                        shippingCost = shipmentData.getCosts().getSenderCost();
+
+                    MercadoLivreShipmentResponse shipmentData =
+                            mercadoLivreClient.getShipmentById(shippingId);
+
+                    if (shipmentData != null) {
+
+                        if (shipmentData.getBaseCost() != null) {
+
+                            shippingCost = shipmentData.getBaseCost();
+
+                        } else if (
+                                shipmentData.getCosts() != null
+                                        && shipmentData.getCosts().getSenderCost() != null) {
+
+                            shippingCost =
+                                    shipmentData.getCosts().getSenderCost();
+                        }
                     }
+
                 } catch (Exception e) {
-                    System.err.println("Erro ao processar custo logístico do envio " + shippingId + ": " + e.getMessage());
+
+                    System.err.println(
+                            "Erro ao processar custo logístico do envio "
+                                    + shippingId
+                                    + ": "
+                                    + e.getMessage()
+                    );
                 }
             }
 
