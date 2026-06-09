@@ -18,6 +18,7 @@ public class Product {
     )
     private String sku;
 
+    @Column(unique = true)
     private String mlItemId;
 
     @Column(nullable = false)

@@ -11,6 +11,8 @@ import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.Merca
 import br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail.MercadoLivreShipmentResponse;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import org.springframework.stereotype.Service;
+import br.com.vendas.mlfinanceiro.domain.Product;
+import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,13 +24,16 @@ public class MercadoLivreImportService {
 
     private final MercadoLivreClient mercadoLivreClient;
     private final SaleRepository saleRepository;
+    private final ProductRepository productRepository;
 
     public MercadoLivreImportService(
             MercadoLivreClient mercadoLivreClient,
-            SaleRepository saleRepository
+            SaleRepository saleRepository,
+            ProductRepository productRepository
     ) {
         this.mercadoLivreClient = mercadoLivreClient;
         this.saleRepository = saleRepository;
+        this.productRepository = productRepository;
     }
 
     // Mantido retornando 'int' para resolver o erro do MercadoLivreController de imediato
@@ -162,6 +167,34 @@ public class MercadoLivreImportService {
             sale.setMarketplaceItemId(
                     firstItem.getItem().getId()
             );
+
+            Product product =
+                    productRepository
+                            .findByMlItemId(
+                                    firstItem.getItem().getId()
+                            )
+                            .orElse(null);
+
+            if (product != null) {
+
+                sale.setSku(
+                        product.getSku()
+                );
+
+                if (product.getCostPrice() != null) {
+
+                    sale.setProductCost(
+                            product.getCostPrice()
+                    );
+                }
+
+            } else {
+
+                sale.setSku(
+                        firstItem.getItem().getId()
+                );
+            }
+
             sale.setQuantity(quantity);
             sale.setSoldAt(LocalDateTime.now());
 
@@ -174,7 +207,9 @@ public class MercadoLivreImportService {
 
             // Custos locais/internos do seu controle de estoque
             sale.setExtraCosts(BigDecimal.ZERO);
-            sale.setProductCost(BigDecimal.ZERO);
+            if (sale.getProductCost() == null) {
+                sale.setProductCost(BigDecimal.ZERO);
+            }
 
             // Executa a lógica de margem interna baseada em dados reais
             sale.calculateProfit();
