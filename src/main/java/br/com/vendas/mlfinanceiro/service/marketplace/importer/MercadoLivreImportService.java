@@ -100,7 +100,13 @@ public class MercadoLivreImportService {
 
                     if (shipmentData != null) {
 
-                        if (shipmentData.getBaseCost() != null) {
+                        if (shipmentData.getShippingOption() != null
+                                && shipmentData.getShippingOption().getListCost() != null) {
+
+                            shippingCost =
+                                    shipmentData.getShippingOption().getListCost();
+
+                        } else if (shipmentData.getBaseCost() != null) {
 
                             shippingCost = shipmentData.getBaseCost();
 
