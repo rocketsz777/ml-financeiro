@@ -96,6 +96,24 @@ public class MercadoLivreImportService {
                     ? payment.getNetReceivedAmount()
                     : grossAmount.subtract(fee).subtract(shippingCost);
 
+            System.out.println("\n========== PEDIDO ==========");
+            System.out.println("Order: " + orderId);
+            System.out.println("GrossAmount: " + grossAmount);
+
+            if (payment != null) {
+                System.out.println("PaymentId: " + payment.getId());
+                System.out.println("TransactionAmount: " + payment.getTransactionAmount());
+                System.out.println("TotalPaidAmount: " + payment.getTotal_paid_amount());
+                System.out.println("MarketplaceFee: " + payment.getMarketplaceFee());
+                System.out.println("NetReceivedAmount: " + payment.getNetReceivedAmount());
+            } else {
+                System.out.println("Payment: NULL");
+            }
+
+            System.out.println("ShippingCost: " + shippingCost);
+            System.out.println("CalculatedNetAmount: " + netAmount);
+            System.out.println("============================\n");
+
             // Instanciação e persistência do domínio Sale
             Sale sale = new Sale();
             sale.setOrderId(orderId);
