@@ -159,6 +159,9 @@ public class MercadoLivreImportService {
             sale.setMarketplace(Marketplace.MERCADO_LIVRE);
             sale.setProductName(firstItem.getItem().getTitle());
             sale.setSku(firstItem.getItem().getId());
+            sale.setMarketplaceItemId(
+                    firstItem.getItem().getId()
+            );
             sale.setQuantity(quantity);
             sale.setSoldAt(LocalDateTime.now());
 

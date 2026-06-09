@@ -252,6 +252,9 @@ public class ShopeeImportService {
                         ).asText(orderSn)
                 )
         );
+        sale.setMarketplaceItemId(
+                firstItem.path("item_id").asText()
+        );
 
         sale.setQuantity(
                 quantity
