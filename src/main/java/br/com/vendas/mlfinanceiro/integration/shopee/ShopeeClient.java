@@ -244,4 +244,22 @@ public class ShopeeClient {
             );
         }
     }
+
+    public JsonNode getEscrowDetail(String orderSn) {
+
+        String path = "/api/v2/payment/get_escrow_detail";
+
+        return webClient.get()
+                .uri(uriBuilder ->
+                        addSignedParams(
+                                uriBuilder.path(path),
+                                path
+                        )
+                                .queryParam("order_sn", orderSn)
+                                .build()
+                )
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .block();
+    }
 }

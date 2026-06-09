@@ -141,6 +141,15 @@ public class ShopeeImportService {
         JsonNode detail =
                 orders.get(0);
 
+        JsonNode escrowResponse =
+                shopeeClient.getEscrowDetail(orderSn);
+
+        JsonNode orderIncome =
+                escrowResponse == null
+                        ? null
+                        : escrowResponse.path("response")
+                        .path("order_income");
+
         JsonNode firstItem =
                 detail.path(
                         "item_list"
@@ -173,7 +182,50 @@ public class ShopeeImportService {
                                 "total_amount"
                         ).asDouble(0)
                 );
+        BigDecimal grossAmount = totalAmount;
+        BigDecimal marketplaceFee = BigDecimal.ZERO;
+        BigDecimal shippingCost = BigDecimal.ZERO;
+        BigDecimal netAmount = totalAmount;
 
+        if (orderIncome != null && !orderIncome.isMissingNode()) {
+
+            grossAmount =
+                    BigDecimal.valueOf(
+                            orderIncome.path("original_price")
+                                    .asDouble(totalAmount.doubleValue())
+                    );
+
+            marketplaceFee =
+                    BigDecimal.valueOf(
+                            orderIncome.path("commission_fee")
+                                    .asDouble(0)
+                    ).add(
+                            BigDecimal.valueOf(
+                                    orderIncome.path("service_fee")
+                                            .asDouble(0)
+                            )
+                    );
+
+            shippingCost =
+                    BigDecimal.valueOf(
+                            orderIncome.path("actual_shipping_fee")
+                                    .asDouble(0)
+                    );
+
+            netAmount =
+                    BigDecimal.valueOf(
+                            orderIncome.path("escrow_amount")
+                                    .asDouble(totalAmount.doubleValue())
+                    );
+
+            System.out.println("===== SHOPEE =====");
+            System.out.println("Order: " + orderSn);
+            System.out.println("Gross: " + grossAmount);
+            System.out.println("Fee: " + marketplaceFee);
+            System.out.println("Shipping: " + shippingCost);
+            System.out.println("Net: " + netAmount);
+            System.out.println("==================");
+        }
         Sale sale =
                 new Sale();
 
@@ -210,11 +262,11 @@ public class ShopeeImportService {
         );
 
         sale.setGrossAmount(
-                totalAmount
+                grossAmount
         );
 
         sale.setNetAmount(
-                totalAmount
+                netAmount
         );
 
         sale.setUnitSalePrice(
@@ -228,11 +280,11 @@ public class ShopeeImportService {
         );
 
         sale.setMarketplaceFee(
-                BigDecimal.ZERO
+                marketplaceFee
         );
 
         sale.setShippingCost(
-                BigDecimal.ZERO
+                shippingCost
         );
 
         sale.setExtraCosts(
