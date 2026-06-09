@@ -57,12 +57,6 @@ public class Sale {
                         )
                         .add(
                                 extraCosts
-                        )
-                        .add(
-                                shippingCost
-                        )
-                        .add(
-                                marketplaceFee
                         );
 
         this.profit =
