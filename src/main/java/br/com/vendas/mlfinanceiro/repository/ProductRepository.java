@@ -19,4 +19,8 @@ public interface ProductRepository
     boolean existsBySku(
             String sku
     );
+
+    Optional<Product> findByMlItemId(
+            String mlItemId
+    );
 }

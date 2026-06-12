@@ -18,6 +18,7 @@ public class Product {
     )
     private String sku;
 
+    @Column(unique = true)
     private String mlItemId;
 
     @Column(nullable = false)
@@ -25,6 +26,9 @@ public class Product {
 
     @Column(nullable = false)
     private BigDecimal costPrice;
+
+    @Column(name = "old_cost_price")
+    private BigDecimal oldCostPrice;
 
     @Column(nullable = false)
     private Integer stockQuantity;
@@ -80,6 +84,16 @@ public class Product {
 
     public void setCostPrice(BigDecimal costPrice) {
         this.costPrice = costPrice;
+    }
+
+    public BigDecimal getOldCostPrice() {
+        return oldCostPrice;
+    }
+
+    public void setOldCostPrice(
+            BigDecimal oldCostPrice
+    ) {
+        this.oldCostPrice = oldCostPrice;
     }
 
     public Integer getStockQuantity() {

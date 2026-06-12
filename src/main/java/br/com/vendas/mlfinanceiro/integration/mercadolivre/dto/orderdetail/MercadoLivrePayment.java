@@ -1,63 +1,61 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 
 public class MercadoLivrePayment {
 
     private Long id;
 
-    private BigDecimal transaction_amount;
+    @JsonProperty("transaction_amount")
+    private BigDecimal transactionAmount;
 
-    private BigDecimal total_paid_amount;
+    @JsonProperty("total_paid_amount")
+    private BigDecimal totalPaidAmount;
 
-    private BigDecimal marketplace_fee;
+    @JsonProperty("marketplace_fee")
+    private BigDecimal marketplaceFee;
+
+    @JsonProperty("net_received_amount")
+    private BigDecimal netReceivedAmount;
 
     public Long getId() {
-
         return id;
     }
 
     public void setId(Long id) {
-
         this.id = id;
     }
 
-    public BigDecimal getTransaction_amount() {
-
-        return transaction_amount;
+    public BigDecimal getTransactionAmount() {
+        return transactionAmount;
     }
 
-    public void setTransaction_amount(
-            BigDecimal transaction_amount
-    ) {
-
-        this.transaction_amount =
-                transaction_amount;
+    public void setTransactionAmount(BigDecimal transactionAmount) {
+        this.transactionAmount = transactionAmount;
     }
 
     public BigDecimal getTotal_paid_amount() {
-
-        return total_paid_amount;
+        return totalPaidAmount;
     }
 
-    public void setTotal_paid_amount(
-            BigDecimal total_paid_amount
-    ) {
-
-        this.total_paid_amount =
-                total_paid_amount;
+    public void setTotal_paid_amount(BigDecimal totalPaidAmount) {
+        this.totalPaidAmount = totalPaidAmount;
     }
 
-    public BigDecimal getMarketplace_fee() {
-
-        return marketplace_fee;
+    public BigDecimal getMarketplaceFee() {
+        return marketplaceFee;
     }
 
-    public void setMarketplace_fee(
-            BigDecimal marketplace_fee
-    ) {
+    public void setMarketplaceFee(BigDecimal marketplaceFee) {
+        this.marketplaceFee = marketplaceFee;
+    }
 
-        this.marketplace_fee =
-                marketplace_fee;
+    public BigDecimal getNetReceivedAmount() {
+        return netReceivedAmount;
+    }
+
+    public void setNetReceivedAmount(BigDecimal netReceivedAmount) {
+        this.netReceivedAmount = netReceivedAmount;
     }
 }

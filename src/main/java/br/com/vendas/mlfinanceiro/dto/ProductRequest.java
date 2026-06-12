@@ -14,6 +14,8 @@ public class ProductRequest {
 
     private Integer stockQuantity;
 
+    private BigDecimal oldCostPrice;
+
     public String getSku() {
         return sku;
     }
@@ -42,6 +44,16 @@ public class ProductRequest {
         return costPrice;
     }
 
+    public BigDecimal getOldCostPrice() {
+        return oldCostPrice;
+    }
+
+    public void setOldCostPrice(
+            BigDecimal oldCostPrice
+    ) {
+        this.oldCostPrice = oldCostPrice;
+    }
+
     public void setCostPrice(BigDecimal costPrice) {
         this.costPrice = costPrice;
     }
@@ -53,4 +65,7 @@ public class ProductRequest {
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
     }
+
+
+
 }

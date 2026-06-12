@@ -54,9 +54,19 @@ public class ProductController {
                 request.getSku()
         );
 
-        product.setMlItemId(
-                request.getMlItemId()
-        );
+        if (
+                request.getMlItemId() == null
+                        || request.getMlItemId().trim().isEmpty()
+        ) {
+
+            product.setMlItemId(null);
+
+        } else {
+
+            product.setMlItemId(
+                    request.getMlItemId()
+            );
+        }
 
         product.setName(
                 request.getName()
@@ -64,6 +74,10 @@ public class ProductController {
 
         product.setCostPrice(
                 request.getCostPrice()
+        );
+
+        product.setOldCostPrice(
+                request.getOldCostPrice()
         );
 
         product.setStockQuantity(
@@ -88,6 +102,10 @@ public class ProductController {
                         sku
                 );
 
+        product.setSku(
+                request.getSku()
+        );
+
         product.setMlItemId(
                 request.getMlItemId()
         );
@@ -98,6 +116,10 @@ public class ProductController {
 
         product.setCostPrice(
                 request.getCostPrice()
+        );
+
+        product.setOldCostPrice(
+                request.getOldCostPrice()
         );
 
         product.setStockQuantity(

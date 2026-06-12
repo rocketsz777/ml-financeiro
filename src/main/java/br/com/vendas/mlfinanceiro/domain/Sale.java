@@ -45,6 +45,8 @@ public class Sale {
 
     private LocalDateTime soldAt;
 
+    private String marketplaceItemId;
+
     public void calculateProfit() {
 
         BigDecimal totalCost =
@@ -57,12 +59,6 @@ public class Sale {
                         )
                         .add(
                                 extraCosts
-                        )
-                        .add(
-                                shippingCost
-                        )
-                        .add(
-                                marketplaceFee
                         );
 
         this.profit =
@@ -119,6 +115,7 @@ public class Sale {
                 profit.toString(),
                 profitMargin.toString(),
                 soldAt.toString()
+
         );
     }
 
@@ -377,5 +374,13 @@ public class Sale {
             LocalDateTime soldAt
     ) {
         this.soldAt = soldAt;
+    }
+
+    public String getMarketplaceItemId() {
+        return marketplaceItemId;
+    }
+
+    public void setMarketplaceItemId(String marketplaceItemId) {
+        this.marketplaceItemId = marketplaceItemId;
     }
 }
