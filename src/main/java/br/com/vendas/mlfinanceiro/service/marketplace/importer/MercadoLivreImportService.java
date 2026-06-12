@@ -65,6 +65,17 @@ public class MercadoLivreImportService {
             }
 
             MercadoLivreOrderItem firstItem = detail.getOrderItems().get(0);
+            String sellerSku =
+                    firstItem
+                            .getItem()
+                            .getSellerSku();
+
+            if (
+                    sellerSku != null
+                            && sellerSku.trim().isEmpty()
+            ) {
+                sellerSku = null;
+            }
             MercadoLivrePayment payment = detail.getPayments() != null && !detail.getPayments().isEmpty()
                     ? detail.getPayments().get(0)
                     : null;
@@ -163,23 +174,26 @@ public class MercadoLivreImportService {
             sale.setOrderId(orderId);
             sale.setMarketplace(Marketplace.MERCADO_LIVRE);
             sale.setProductName(firstItem.getItem().getTitle());
-            sale.setSku(firstItem.getItem().getId());
+            sale.setSku(
+                    sellerSku
+            );
             sale.setMarketplaceItemId(
                     firstItem.getItem().getId()
             );
 
-            Product product =
-                    productRepository
-                            .findByMlItemId(
-                                    firstItem.getItem().getId()
-                            )
-                            .orElse(null);
+            Product product = null;
+
+            if (sellerSku != null) {
+
+                product =
+                        productRepository
+                                .findBySku(
+                                        sellerSku
+                                )
+                                .orElse(null);
+            }
 
             if (product != null) {
-
-                sale.setSku(
-                        product.getSku()
-                );
 
                 if (product.getCostPrice() != null) {
 
@@ -187,15 +201,20 @@ public class MercadoLivreImportService {
                             product.getCostPrice()
                     );
                 }
-
-            } else {
-
-                sale.setSku(
-                        firstItem.getItem().getId()
-                );
             }
 
             sale.setQuantity(quantity);
+            if (product != null) {
+
+                product.setStockQuantity(
+                        product.getStockQuantity()
+                                - quantity
+                );
+
+                productRepository.save(
+                        product
+                );
+            }
             sale.setSoldAt(LocalDateTime.now());
 
             // Mapeamento correto de cada ramificação do dinheiro

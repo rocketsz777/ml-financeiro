@@ -39,4 +39,16 @@ public class MercadoLivreItem {
 
         this.seller_sku = seller_sku;
     }
+
+    public String getSellerSku() {
+
+        return seller_sku;
+    }
+
+    public void setSellerSku(
+            String sellerSku
+    ) {
+
+        this.seller_sku = sellerSku;
+    }
 }

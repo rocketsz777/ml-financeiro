@@ -23,4 +23,5 @@ public interface ProductRepository
     Optional<Product> findByMlItemId(
             String mlItemId
     );
+
 }

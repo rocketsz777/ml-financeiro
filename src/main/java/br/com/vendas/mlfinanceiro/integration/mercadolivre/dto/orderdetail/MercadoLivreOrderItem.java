@@ -1,6 +1,7 @@
 package br.com.vendas.mlfinanceiro.integration.mercadolivre.dto.orderdetail;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
 
 public class MercadoLivreOrderItem {
@@ -45,4 +46,5 @@ public class MercadoLivreOrderItem {
     public void setSaleFee(BigDecimal saleFee) {
         this.saleFee = saleFee;
     }
+
 }
