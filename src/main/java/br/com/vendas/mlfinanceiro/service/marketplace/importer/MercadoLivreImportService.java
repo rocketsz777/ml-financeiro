@@ -13,6 +13,9 @@ import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import org.springframework.stereotype.Service;
 import br.com.vendas.mlfinanceiro.domain.Product;
 import br.com.vendas.mlfinanceiro.repository.ProductRepository;
+import br.com.vendas.mlfinanceiro.domain.StockMovement;
+import br.com.vendas.mlfinanceiro.domain.StockMovementType;
+import br.com.vendas.mlfinanceiro.repository.StockMovementRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,15 +28,18 @@ public class MercadoLivreImportService {
     private final MercadoLivreClient mercadoLivreClient;
     private final SaleRepository saleRepository;
     private final ProductRepository productRepository;
+    private final StockMovementRepository stockMovementRepository;
 
     public MercadoLivreImportService(
             MercadoLivreClient mercadoLivreClient,
             SaleRepository saleRepository,
-            ProductRepository productRepository
+            ProductRepository productRepository,
+            StockMovementRepository stockMovementRepository
     ) {
         this.mercadoLivreClient = mercadoLivreClient;
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
+        this.stockMovementRepository = stockMovementRepository;
     }
 
     // Mantido retornando 'int' para resolver o erro do MercadoLivreController de imediato
@@ -213,6 +219,28 @@ public class MercadoLivreImportService {
 
                 productRepository.save(
                         product
+                );
+                StockMovement movement =
+                        new StockMovement();
+
+                movement.setSku(
+                        sellerSku
+                );
+
+                movement.setType(
+                        StockMovementType.SALE
+                );
+
+                movement.setQuantity(
+                        quantity
+                );
+
+                movement.setReference(
+                        orderId
+                );
+
+                stockMovementRepository.save(
+                        movement
                 );
             }
             sale.setSoldAt(LocalDateTime.now());
