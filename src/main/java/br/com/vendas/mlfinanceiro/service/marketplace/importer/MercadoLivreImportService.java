@@ -16,6 +16,8 @@ import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.domain.StockMovement;
 import br.com.vendas.mlfinanceiro.domain.StockMovementType;
 import br.com.vendas.mlfinanceiro.repository.StockMovementRepository;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -243,7 +245,31 @@ public class MercadoLivreImportService {
                         movement
                 );
             }
-            sale.setSoldAt(LocalDateTime.now());
+            LocalDateTime soldAt;
+
+            if (
+                    detail.getDateClosed() != null
+            ) {
+
+                soldAt =
+                        OffsetDateTime
+                                .parse(
+                                        detail.getDateClosed()
+                                )
+                                .atZoneSameInstant(
+                                        ZoneId.systemDefault()
+                                )
+                                .toLocalDateTime();
+
+            } else {
+
+                soldAt =
+                        LocalDateTime.now();
+            }
+
+            sale.setSoldAt(
+                    soldAt
+            );
 
             // Mapeamento correto de cada ramificação do dinheiro
             sale.setUnitSalePrice(unitPrice);

@@ -9,6 +9,12 @@ public class MercadoLivreOrderDetail {
     private Long id;
     private String status;
 
+    @JsonProperty("date_created")
+    private String dateCreated;
+
+    @JsonProperty("date_closed")
+    private String dateClosed;
+
     @JsonProperty("total_amount")
     private BigDecimal totalAmount;
 
@@ -57,6 +63,26 @@ public class MercadoLivreOrderDetail {
 
     public void setPayments(List<MercadoLivrePayment> payments) {
         this.payments = payments;
+    }
+
+    public String getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(
+            String dateCreated
+    ) {
+        this.dateCreated = dateCreated;
+    }
+
+    public String getDateClosed() {
+        return dateClosed;
+    }
+
+    public void setDateClosed(
+            String dateClosed
+    ) {
+        this.dateClosed = dateClosed;
     }
 
     public Shipping getShipping() {
