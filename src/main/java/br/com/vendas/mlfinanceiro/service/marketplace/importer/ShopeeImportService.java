@@ -3,6 +3,7 @@ package br.com.vendas.mlfinanceiro.service.marketplace.importer;
 import br.com.vendas.mlfinanceiro.domain.Marketplace;
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.integration.shopee.ShopeeClient;
+import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,12 @@ public class ShopeeImportService {
 
     private final SaleRepository saleRepository;
 
+    private final ProductRepository productRepository;
+
     public ShopeeImportService(
             ShopeeClient shopeeClient,
-            SaleRepository saleRepository
+            SaleRepository saleRepository,
+            ProductRepository productRepository
     ) {
 
         this.shopeeClient =
@@ -29,6 +33,9 @@ public class ShopeeImportService {
 
         this.saleRepository =
                 saleRepository;
+
+        this.productRepository =
+                productRepository;
     }
 
     public int importOrders() {
@@ -45,8 +52,7 @@ public class ShopeeImportService {
         int pagesRead =
                 0;
 
-        while (hasMore
-                && pagesRead < 5) {
+        while (hasMore && pagesRead < 100){
 
             JsonNode orderListResponse =
                     shopeeClient.getOrderList(
@@ -294,9 +300,42 @@ public class ShopeeImportService {
                 BigDecimal.ZERO
         );
 
-        sale.setProductCost(
-                BigDecimal.ZERO
-        );
+        String sku =
+                sale.getSku();
+
+        if (sku != null
+                && !sku.trim().isEmpty()) {
+
+            productRepository.findBySku(sku)
+                    .ifPresent(product -> {
+
+                        sale.setProductCost(
+                                product.getCostPrice()
+                        );
+
+                        System.out.println(
+                                "Produto encontrado: "
+                                        + product.getName()
+                        );
+
+                        System.out.println(
+                                "SKU: "
+                                        + sku
+                        );
+
+                        System.out.println(
+                                "Custo aplicado: "
+                                        + product.getCostPrice()
+                        );
+                    });
+        }
+
+        if (sale.getProductCost() == null) {
+
+            sale.setProductCost(
+                    BigDecimal.ZERO
+            );
+        }
 
         sale.calculateProfit();
 

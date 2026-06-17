@@ -56,7 +56,7 @@ public class MercadoLivreImportService {
 
         int offset = 0;
 
-        int limit = 200;
+        int limit = 50;
 
         boolean hasMore = true;
 
@@ -99,242 +99,257 @@ public class MercadoLivreImportService {
                                 order.getId()
                         );
 
-            if (saleRepository.existsByOrderId(orderId)) {
-                System.out.println("Pedido já importado anteriormente: " + orderId);
-                continue;
-            }
+                if (saleRepository.existsByOrderId(orderId)) {
+                    System.out.println("Pedido já importado anteriormente: " + orderId);
+                    continue;
+                }
 
-            MercadoLivreOrderDetail detail = mercadoLivreClient.getOrderById(order.getId());
-            if (detail == null || detail.getOrderItems() == null || detail.getOrderItems().isEmpty()) {
-                continue;
-            }
+                MercadoLivreOrderDetail detail = mercadoLivreClient.getOrderById(order.getId());
+                if (detail == null || detail.getOrderItems() == null || detail.getOrderItems().isEmpty()) {
+                    continue;
+                }
 
-            MercadoLivreOrderItem firstItem = detail.getOrderItems().get(0);
-            String sellerSku =
-                    firstItem
-                            .getItem()
-                            .getSellerSku();
+                MercadoLivreOrderItem firstItem = detail.getOrderItems().get(0);
+                String sellerSku =
+                        firstItem
+                                .getItem()
+                                .getSellerSku();
 
-            if (
-                    sellerSku != null
-                            && sellerSku.trim().isEmpty()
-            ) {
-                sellerSku = null;
-            }
-            MercadoLivrePayment payment = detail.getPayments() != null && !detail.getPayments().isEmpty()
-                    ? detail.getPayments().get(0)
-                    : null;
+                if (
+                        sellerSku != null
+                                && sellerSku.trim().isEmpty()
+                ) {
+                    sellerSku = null;
+                }
+                MercadoLivrePayment payment = detail.getPayments() != null && !detail.getPayments().isEmpty()
+                        ? detail.getPayments().get(0)
+                        : null;
 
-            // --- CÁLCULOS FINANCEIROS CORRIGIDOS ---
-            BigDecimal unitPrice = firstItem.getUnitPrice() != null ? firstItem.getUnitPrice() : BigDecimal.ZERO;
-            Integer quantity = firstItem.getQuantity() != null ? firstItem.getQuantity() : 1;
-            BigDecimal grossAmount = unitPrice.multiply(new BigDecimal(quantity));
+                // --- CÁLCULOS FINANCEIROS CORRIGIDOS ---
+                BigDecimal unitPrice = firstItem.getUnitPrice() != null ? firstItem.getUnitPrice() : BigDecimal.ZERO;
+                Integer quantity = firstItem.getQuantity() != null ? firstItem.getQuantity() : 1;
+                BigDecimal grossAmount = unitPrice.multiply(new BigDecimal(quantity));
 
-            // Captura da Tarifa Comercial (Comissão ML)
-            BigDecimal fee = BigDecimal.ZERO;
+                // Captura da Tarifa Comercial (Comissão ML)
+                BigDecimal fee = BigDecimal.ZERO;
 
-            if (payment != null
-                    && payment.getMarketplaceFee() != null
-                    && payment.getMarketplaceFee().compareTo(BigDecimal.ZERO) > 0) {
+                if (payment != null
+                        && payment.getMarketplaceFee() != null
+                        && payment.getMarketplaceFee().compareTo(BigDecimal.ZERO) > 0) {
 
-                fee = payment.getMarketplaceFee();
+                    fee = payment.getMarketplaceFee();
 
-            } else if (firstItem.getSaleFee() != null) {
+                } else if (firstItem.getSaleFee() != null) {
 
-                fee = firstItem.getSaleFee()
-                        .multiply(new BigDecimal(quantity));
-            }
+                    fee = firstItem.getSaleFee()
+                            .multiply(new BigDecimal(quantity));
+                }
 
-            BigDecimal shippingCost = BigDecimal.ZERO;
+                BigDecimal shippingCost = BigDecimal.ZERO;
 
-            Long shippingId =
-                    detail.getShipping() != null
-                            ? detail.getShipping().getId()
-                            : null;
+                Long shippingId =
+                        detail.getShipping() != null
+                                ? detail.getShipping().getId()
+                                : null;
 
-            if (shippingId != null) {
+                if (shippingId != null) {
 
-                try {
+                    try {
 
-                    MercadoLivreShipmentResponse shipmentData =
-                            mercadoLivreClient.getShipmentById(shippingId);
+                        MercadoLivreShipmentResponse shipmentData =
+                                mercadoLivreClient.getShipmentById(shippingId);
 
-                    if (shipmentData != null) {
+                        if (shipmentData != null) {
 
-                        if (shipmentData.getShippingOption() != null
-                                && shipmentData.getShippingOption().getListCost() != null) {
+                            if (shipmentData.getShippingOption() != null
+                                    && shipmentData.getShippingOption().getListCost() != null) {
 
-                            shippingCost =
-                                    shipmentData.getShippingOption().getListCost();
+                                shippingCost =
+                                        shipmentData.getShippingOption().getListCost();
 
-                        } else if (shipmentData.getBaseCost() != null) {
+                            } else if (shipmentData.getBaseCost() != null) {
 
-                            shippingCost = shipmentData.getBaseCost();
+                                shippingCost = shipmentData.getBaseCost();
 
-                        } else if (
-                                shipmentData.getCosts() != null
-                                        && shipmentData.getCosts().getSenderCost() != null) {
+                            } else if (
+                                    shipmentData.getCosts() != null
+                                            && shipmentData.getCosts().getSenderCost() != null) {
 
-                            shippingCost =
-                                    shipmentData.getCosts().getSenderCost();
+                                shippingCost =
+                                        shipmentData.getCosts().getSenderCost();
+                            }
                         }
+
+                    } catch (Exception e) {
+
+                        System.err.println(
+                                "Erro ao processar custo logístico do envio "
+                                        + shippingId
+                                        + ": "
+                                        + e.getMessage()
+                        );
                     }
-
-                } catch (Exception e) {
-
-                    System.err.println(
-                            "Erro ao processar custo logístico do envio "
-                                    + shippingId
-                                    + ": "
-                                    + e.getMessage()
-                    );
                 }
-            }
 
-            // Define o valor recebido na conta líquida do Mercado Pago
-            BigDecimal netAmount = (payment != null && payment.getNetReceivedAmount() != null)
-                    ? payment.getNetReceivedAmount()
-                    : grossAmount.subtract(fee).subtract(shippingCost);
+                // Define o valor recebido na conta líquida do Mercado Pago
+                BigDecimal netAmount = (payment != null && payment.getNetReceivedAmount() != null)
+                        ? payment.getNetReceivedAmount()
+                        : grossAmount.subtract(fee).subtract(shippingCost);
 
-            System.out.println("\n========== PEDIDO ==========");
-            System.out.println("Order: " + orderId);
-            System.out.println("GrossAmount: " + grossAmount);
+                System.out.println("\n========== PEDIDO ==========");
+                System.out.println("Order: " + orderId);
+                System.out.println("GrossAmount: " + grossAmount);
 
-            if (payment != null) {
-                System.out.println("PaymentId: " + payment.getId());
-                System.out.println("TransactionAmount: " + payment.getTransactionAmount());
-                System.out.println("TotalPaidAmount: " + payment.getTotal_paid_amount());
-                System.out.println("MarketplaceFee: " + payment.getMarketplaceFee());
-                System.out.println("NetReceivedAmount: " + payment.getNetReceivedAmount());
-            } else {
-                System.out.println("Payment: NULL");
-            }
-
-            System.out.println("ShippingCost: " + shippingCost);
-            System.out.println("CalculatedNetAmount: " + netAmount);
-            System.out.println("============================\n");
-
-            // Instanciação e persistência do domínio Sale
-            Sale sale = new Sale();
-            sale.setOrderId(orderId);
-            sale.setMarketplace(Marketplace.MERCADO_LIVRE);
-            sale.setProductName(firstItem.getItem().getTitle());
-            sale.setSku(
-                    sellerSku
-            );
-            sale.setMarketplaceItemId(
-                    firstItem.getItem().getId()
-            );
-
-            Product product = null;
-
-            if (sellerSku != null) {
-
-                product =
-                        productRepository
-                                .findBySku(
-                                        sellerSku
-                                )
-                                .orElse(null);
-            }
-
-            if (product != null) {
-
-                if (product.getCostPrice() != null) {
-
-                    sale.setProductCost(
-                            product.getCostPrice()
-                    );
+                if (payment != null) {
+                    System.out.println("PaymentId: " + payment.getId());
+                    System.out.println("TransactionAmount: " + payment.getTransactionAmount());
+                    System.out.println("TotalPaidAmount: " + payment.getTotal_paid_amount());
+                    System.out.println("MarketplaceFee: " + payment.getMarketplaceFee());
+                    System.out.println("NetReceivedAmount: " + payment.getNetReceivedAmount());
+                } else {
+                    System.out.println("Payment: NULL");
                 }
-            }
 
-            sale.setQuantity(quantity);
-            if (product != null) {
+                System.out.println("ShippingCost: " + shippingCost);
+                System.out.println("CalculatedNetAmount: " + netAmount);
+                System.out.println("============================\n");
 
-                product.setStockQuantity(
-                        product.getStockQuantity()
-                                - quantity
-                );
-
-                productRepository.save(
-                        product
-                );
-                StockMovement movement =
-                        new StockMovement();
-
-                movement.setSku(
+                // Instanciação e persistência do domínio Sale
+                Sale sale = new Sale();
+                sale.setOrderId(orderId);
+                sale.setMarketplace(Marketplace.MERCADO_LIVRE);
+                sale.setProductName(firstItem.getItem().getTitle());
+                sale.setSku(
                         sellerSku
                 );
-
-                movement.setType(
-                        StockMovementType.SALE
+                sale.setMarketplaceItemId(
+                        firstItem.getItem().getId()
                 );
 
-                movement.setQuantity(
-                        quantity
+                Product product = null;
+
+                if (sellerSku != null) {
+
+                    product =
+                            productRepository
+                                    .findBySku(
+                                            sellerSku
+                                    )
+                                    .orElse(null);
+                }
+
+                if (product != null) {
+
+                    if (product.getCostPrice() != null) {
+
+                        sale.setProductCost(
+                                product.getCostPrice()
+                        );
+                    }
+                }
+
+                sale.setQuantity(quantity);
+                if (product != null) {
+
+                    product.setStockQuantity(
+                            product.getStockQuantity()
+                                    - quantity
+                    );
+
+                    productRepository.save(
+                            product
+                    );
+                    StockMovement movement =
+                            new StockMovement();
+
+                    movement.setSku(
+                            sellerSku
+                    );
+
+                    movement.setType(
+                            StockMovementType.SALE
+                    );
+
+                    movement.setQuantity(
+                            quantity
+                    );
+
+                    movement.setReference(
+                            orderId
+                    );
+
+                    stockMovementRepository.save(
+                            movement
+                    );
+                }
+                LocalDateTime soldAt;
+
+                if (
+                        detail.getDateClosed() != null
+                ) {
+
+                    soldAt =
+                            OffsetDateTime
+                                    .parse(
+                                            detail.getDateClosed()
+                                    )
+                                    .atZoneSameInstant(
+                                            ZoneId.systemDefault()
+                                    )
+                                    .toLocalDateTime();
+
+                } else {
+
+                    soldAt =
+                            LocalDateTime.now();
+                }
+
+                sale.setSoldAt(
+                        soldAt
                 );
 
-                movement.setReference(
-                        orderId
-                );
+                // Mapeamento correto de cada ramificação do dinheiro
+                sale.setUnitSalePrice(unitPrice);
+                sale.setGrossAmount(grossAmount);
+                sale.setMarketplaceFee(fee);
+                sale.setShippingCost(shippingCost);
+                sale.setNetAmount(netAmount);
 
-                stockMovementRepository.save(
-                        movement
-                );
+                // Custos locais/internos do seu controle de estoque
+                sale.setExtraCosts(BigDecimal.ZERO);
+                if (sale.getProductCost() == null) {
+                    sale.setProductCost(BigDecimal.ZERO);
+                }
+
+                // Executa a lógica de margem interna baseada em dados reais
+                sale.calculateProfit();
+
+                System.out.println("Salvando venda com sucesso. ID Pedido: " + orderId + " | Líquido: R$ " + netAmount);
+                Sale saved = saleRepository.save(sale);
+                savedSales.add(saved);
             }
-            LocalDateTime soldAt;
-
-            if (
-                    detail.getDateClosed() != null
-            ) {
-
-                soldAt =
-                        OffsetDateTime
-                                .parse(
-                                        detail.getDateClosed()
-                                )
-                                .atZoneSameInstant(
-                                        ZoneId.systemDefault()
-                                )
-                                .toLocalDateTime();
-
-            } else {
-
-                soldAt =
-                        LocalDateTime.now();
-            }
-
-            sale.setSoldAt(
-                    soldAt
-            );
-
-            // Mapeamento correto de cada ramificação do dinheiro
-            sale.setUnitSalePrice(unitPrice);
-            sale.setGrossAmount(grossAmount);
-            sale.setMarketplaceFee(fee);
-            sale.setShippingCost(shippingCost);
-            sale.setNetAmount(netAmount);
-
-            // Custos locais/internos do seu controle de estoque
-            sale.setExtraCosts(BigDecimal.ZERO);
-            if (sale.getProductCost() == null) {
-                sale.setProductCost(BigDecimal.ZERO);
-            }
-
-            // Executa a lógica de margem interna baseada em dados reais
-            sale.calculateProfit();
-
-            System.out.println("Salvando venda com sucesso. ID Pedido: " + orderId + " | Líquido: R$ " + netAmount);
-            Sale saved = saleRepository.save(sale);
-            savedSales.add(saved);
-        }
             offset += limit;
 
             hasMore =
-                    response.getResults().size()
-                            == limit; }
+                    response.getPaging() != null
+                            && offset < response.getPaging().getTotal();
 
-        System.out.println("Importação finalizada. Total de novos registros: " + savedSales.size());
+            System.out.println(
+                    "Página carregada | offset="
+                            + offset
+                            + " de "
+                            + response.getPaging().getTotal()
+                            + " | hasMore="
+                            + hasMore
+            );
+
+        } // fim do while
+
+        System.out.println(
+                "Importação finalizada. Total de novos registros: "
+                        + savedSales.size()
+        );
+
         return savedSales;
     }
 }
