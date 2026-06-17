@@ -120,11 +120,6 @@ public class MercadoLivreClient {
         String sellerId =
                 getSellerId();
 
-        String dateFrom =
-                java.time.OffsetDateTime.now()
-                        .minusDays(90)
-                        .toString();
-
         return webClient.get()
 
                 .uri(uriBuilder ->
@@ -138,11 +133,6 @@ public class MercadoLivreClient {
                                 .queryParam("sort", "date_desc")
 
                                 .queryParam("order.status", "paid")
-
-                                .queryParam(
-                                        "order.date_created.from",
-                                        dateFrom
-                                )
 
                                 .queryParam(
                                         "offset",
