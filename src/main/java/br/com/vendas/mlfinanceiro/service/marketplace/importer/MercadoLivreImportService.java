@@ -54,13 +54,50 @@ public class MercadoLivreImportService {
 
         System.out.println("=== INICIANDO IMPORTAÇÃO MERCADO LIVRE ===");
 
-        MercadoLivreOrderResponse response = mercadoLivreClient.getOrders();
-        if (response == null || response.getResults() == null) {
-            return savedSales;
-        }
+        int offset = 0;
 
-        for (MercadoLivreOrderResult order : response.getResults()) {
-            String orderId = String.valueOf(order.getId());
+        int limit = 200;
+
+        boolean hasMore = true;
+
+        while (hasMore) {
+
+            MercadoLivreOrderResponse response =
+
+                    mercadoLivreClient.getOrders(
+                            offset,
+                            limit
+                    );
+            System.out.println(
+                    "Página offset="
+                            + offset
+                            + " | pedidos="
+                            + (
+                            response != null
+                                    && response.getResults() != null
+                                    ? response.getResults().size()
+                                    : 0
+                    )
+            );
+
+            if (
+                    response == null
+                            || response.getResults() == null
+                            || response.getResults().isEmpty()
+            ) {
+
+                break;
+            }
+
+            for (
+                    MercadoLivreOrderResult order :
+                    response.getResults()
+            ) {
+
+                String orderId =
+                        String.valueOf(
+                                order.getId()
+                        );
 
             if (saleRepository.existsByOrderId(orderId)) {
                 System.out.println("Pedido já importado anteriormente: " + orderId);
@@ -291,6 +328,11 @@ public class MercadoLivreImportService {
             Sale saved = saleRepository.save(sale);
             savedSales.add(saved);
         }
+            offset += limit;
+
+            hasMore =
+                    response.getResults().size()
+                            == limit; }
 
         System.out.println("Importação finalizada. Total de novos registros: " + savedSales.size());
         return savedSales;

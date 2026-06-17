@@ -262,6 +262,11 @@ public class DashboardService {
                         filteredSales
                 );
 
+        Map<String, BigDecimal> productCostBreakdown =
+                buildProductCostBreakdown(
+                        filteredSales
+                );
+
         DashboardResponse response =
                 new DashboardResponse();
 
@@ -297,6 +302,10 @@ public class DashboardService {
 
         response.setTopProfitableItems(
                 topProfitableItems
+        );
+
+        response.setProductCostBreakdown(
+                productCostBreakdown
         );
 
         return response;
@@ -397,6 +406,89 @@ public class DashboardService {
                         Map.Entry.<String, BigDecimal>
                                         comparingByValue()
 
+                                .reversed()
+                )
+
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue,
+                                (a, b) -> a,
+                                java.util.LinkedHashMap::new
+                        )
+                );
+    }
+
+    private Map<String, BigDecimal> buildProductCostBreakdown(
+            List<Sale> filteredSales
+    ) {
+
+        return filteredSales.stream()
+
+                .collect(
+                        Collectors.groupingBy(
+
+                                sale ->
+
+                                        sale.getProductName() != null
+                                                && !sale.getProductName()
+                                                .trim()
+                                                .isEmpty()
+
+                                                ?
+
+                                                sale.getProductName()
+
+                                                :
+
+                                                sale.getSku(),
+
+                                Collectors.reducing(
+
+                                        BigDecimal.ZERO,
+
+                                        sale -> {
+
+                                            BigDecimal cost =
+
+                                                    sale.getProductCost() != null
+
+                                                            ?
+
+                                                            sale.getProductCost()
+                                                                    .multiply(
+                                                                            BigDecimal.valueOf(
+                                                                                    sale.getQuantity()
+                                                                            )
+                                                                    )
+
+                                                            :
+
+                                                            BigDecimal.ZERO;
+
+                                            return cost;
+                                        },
+
+                                        BigDecimal::add
+                                )
+                        )
+                )
+
+                .entrySet()
+
+                .stream()
+
+                .filter(
+                        entry ->
+                                entry.getValue()
+                                        .compareTo(
+                                                BigDecimal.ZERO
+                                        ) > 0
+                )
+
+                .sorted(
+                        Map.Entry
+                                .<String, BigDecimal>comparingByValue()
                                 .reversed()
                 )
 

@@ -25,6 +25,10 @@ public class DashboardResponse {
 
     private Map<String, BigDecimal> topProfitableItems;
 
+    private Map<String, BigDecimal> productCosts;
+
+    private Map<String, BigDecimal> productCostBreakdown;
+
     public String getMarketplace() {
         return marketplace;
     }
@@ -123,5 +127,24 @@ public class DashboardResponse {
             Map<String, BigDecimal> topProfitableItems
     ) {
         this.topProfitableItems = topProfitableItems;
+    }
+
+    public Map<String, BigDecimal> getProductCosts() {
+        return productCosts;
+    }
+
+    public void setProductCosts(
+            Map<String, BigDecimal> productCosts
+    ) {
+        this.productCosts = productCosts;
+    }
+
+    public Map<String, BigDecimal> getProductCostBreakdown() {
+        return productCostBreakdown;
+    }
+
+    public void setProductCostBreakdown(
+            Map<String, BigDecimal> productCostBreakdown) {
+        this.productCostBreakdown = productCostBreakdown;
     }
 }

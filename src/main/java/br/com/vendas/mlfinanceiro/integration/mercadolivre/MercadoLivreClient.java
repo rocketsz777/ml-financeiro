@@ -107,6 +107,69 @@ public class MercadoLivreClient {
                 )
                 .block();
     }
+    public MercadoLivreOrderResponse getOrders(
+            int offset,
+            int limit
+    ) {
+
+        validateAuthentication();
+
+        String accessToken =
+                authService.getValidAccessToken();
+
+        String sellerId =
+                getSellerId();
+
+        String dateFrom =
+                java.time.OffsetDateTime.now()
+                        .minusDays(90)
+                        .toString();
+
+        return webClient.get()
+
+                .uri(uriBuilder ->
+
+                        uriBuilder
+
+                                .path("/orders/search")
+
+                                .queryParam("seller", sellerId)
+
+                                .queryParam("sort", "date_desc")
+
+                                .queryParam("order.status", "paid")
+
+                                .queryParam(
+                                        "order.date_created.from",
+                                        dateFrom
+                                )
+
+                                .queryParam(
+                                        "offset",
+                                        offset
+                                )
+
+                                .queryParam(
+                                        "limit",
+                                        limit
+                                )
+
+                                .build()
+                )
+
+                .header(
+                        HttpHeaders.AUTHORIZATION,
+                        "Bearer " + accessToken
+                )
+
+                .retrieve()
+
+                .bodyToMono(
+                        MercadoLivreOrderResponse.class
+                )
+
+                .block();
+    }
 
     public MercadoLivreOrderDetail getOrderById(
             Long orderId
