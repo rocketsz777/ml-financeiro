@@ -173,4 +173,18 @@ public class ProductController {
                 )
         );
     }
+
+    @GetMapping("/performance")
+    public ResponseEntity<?> getPerformance(
+            @RequestParam String period
+    ) {
+
+        return ResponseEntity.ok(
+
+                productService
+                        .getPerformance(
+                                period
+                        )
+        );
+    }
 }

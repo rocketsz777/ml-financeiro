@@ -224,14 +224,7 @@ public class DashboardService {
                         );
 
         int unitsSold =
-
-                filteredSales.stream()
-
-                        .mapToInt(
-                                Sale::getQuantity
-                        )
-
-                        .sum();
+                filteredSales.size();
 
         BigDecimal profitMargin =
                 BigDecimal.ZERO;
