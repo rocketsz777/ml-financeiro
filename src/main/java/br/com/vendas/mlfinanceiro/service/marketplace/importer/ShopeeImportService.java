@@ -7,6 +7,7 @@ import br.com.vendas.mlfinanceiro.repository.ProductRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
+import br.com.vendas.mlfinanceiro.domain.Product;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -262,6 +263,41 @@ public class ShopeeImportService {
                 firstItem.path("item_id").asText()
         );
 
+        String sku =
+                sale.getSku();
+
+        Product product =
+                null;
+
+        if (sku != null
+                && !sku.trim().isEmpty()) {
+
+            product =
+                    productRepository
+                            .findBySku(
+                                    sku
+                            )
+                            .orElse(null);
+        }
+
+        if (product != null
+                && product.getCostPrice() != null) {
+
+            sale.setProductCost(
+                    product.getCostPrice()
+            );
+
+            System.out.println(
+                    "Produto encontrado: "
+                            + product.getName()
+            );
+
+            System.out.println(
+                    "SKU: "
+                            + sku
+            );
+        }
+
         sale.setQuantity(
                 quantity
         );
@@ -299,36 +335,6 @@ public class ShopeeImportService {
         sale.setExtraCosts(
                 BigDecimal.ZERO
         );
-
-        String sku =
-                sale.getSku();
-
-        if (sku != null
-                && !sku.trim().isEmpty()) {
-
-            productRepository.findBySku(sku)
-                    .ifPresent(product -> {
-
-                        sale.setProductCost(
-                                product.getCostPrice()
-                        );
-
-                        System.out.println(
-                                "Produto encontrado: "
-                                        + product.getName()
-                        );
-
-                        System.out.println(
-                                "SKU: "
-                                        + sku
-                        );
-
-                        System.out.println(
-                                "Custo aplicado: "
-                                        + product.getCostPrice()
-                        );
-                    });
-        }
 
         if (sale.getProductCost() == null) {
 
