@@ -15,11 +15,15 @@ public class DashboardResponse {
 
     private BigDecimal totalCost;
 
+    private BigDecimal totalExtraCosts;
+
     private BigDecimal totalProfit;
 
     private Integer unitsSold;
 
     private BigDecimal profitMargin;
+
+    private Integer salesCount;
 
     private Map<String, Integer> topSellingItems;
 
@@ -146,5 +150,23 @@ public class DashboardResponse {
     public void setProductCostBreakdown(
             Map<String, BigDecimal> productCostBreakdown) {
         this.productCostBreakdown = productCostBreakdown;
+    }
+
+    public BigDecimal getTotalExtraCosts() {
+        return totalExtraCosts;
+    }
+
+    public void setTotalExtraCosts(
+            BigDecimal totalExtraCosts
+    ) {
+        this.totalExtraCosts = totalExtraCosts;
+    }
+
+    public Integer getSalesCount() {
+        return salesCount;
+    }
+
+    public void setSalesCount(Integer salesCount) {
+        this.salesCount = salesCount;
     }
 }

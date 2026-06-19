@@ -207,6 +207,24 @@ public class DashboardService {
                                 BigDecimal.ZERO,
                                 BigDecimal::add
                         );
+        BigDecimal totalExtraCosts =
+
+                filteredSales.stream()
+
+                        .map(
+                                sale ->
+
+                                        sale.getExtraCosts() != null
+
+                                                ? sale.getExtraCosts()
+
+                                                : BigDecimal.ZERO
+                        )
+
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
 
         BigDecimal totalProfit =
 
@@ -266,7 +284,12 @@ public class DashboardService {
                 buildProductCostBreakdown(
                         filteredSales
                 );
+        int salesCount =
 
+                (int) filteredSales.stream()
+                        .map(Sale::getOrderId)
+                        .distinct()
+                        .count();
         DashboardResponse response =
                 new DashboardResponse();
 
@@ -284,12 +307,20 @@ public class DashboardService {
                 totalCost
         );
 
+        response.setTotalExtraCosts(
+                totalExtraCosts
+        );
+
         response.setTotalProfit(
                 totalProfit
         );
 
         response.setUnitsSold(
                 unitsSold
+        );
+
+        response.setSalesCount(
+                salesCount
         );
 
         response.setProfitMargin(

@@ -8,6 +8,9 @@ import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import br.com.vendas.mlfinanceiro.domain.Product;
+import br.com.vendas.mlfinanceiro.domain.StockMovement;
+import br.com.vendas.mlfinanceiro.domain.StockMovementType;
+import br.com.vendas.mlfinanceiro.repository.StockMovementRepository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,10 +26,13 @@ public class ShopeeImportService {
 
     private final ProductRepository productRepository;
 
+    private final StockMovementRepository stockMovementRepository;
+
     public ShopeeImportService(
             ShopeeClient shopeeClient,
             SaleRepository saleRepository,
-            ProductRepository productRepository
+            ProductRepository productRepository,
+            StockMovementRepository stockMovementRepository
     ) {
 
         this.shopeeClient =
@@ -37,6 +43,9 @@ public class ShopeeImportService {
 
         this.productRepository =
                 productRepository;
+
+        this.stockMovementRepository =
+                stockMovementRepository;
     }
 
     public int importOrders() {
@@ -295,6 +304,45 @@ public class ShopeeImportService {
             System.out.println(
                     "SKU: "
                             + sku
+            );
+        }
+        if (product != null) {
+
+            product.setStockQuantity(
+                    product.getStockQuantity()
+                            - quantity
+            );
+
+            productRepository.save(
+                    product
+            );
+
+            StockMovement movement =
+                    new StockMovement();
+
+            movement.setSku(
+                    sku
+            );
+
+            movement.setType(
+                    StockMovementType.SALE
+            );
+
+            movement.setQuantity(
+                    quantity
+            );
+
+            movement.setReference(
+                    orderSn
+            );
+
+            stockMovementRepository.save(
+                    movement
+            );
+
+            System.out.println(
+                    "Estoque atualizado: "
+                            + product.getStockQuantity()
             );
         }
 
