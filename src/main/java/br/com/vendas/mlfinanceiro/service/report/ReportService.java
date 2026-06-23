@@ -23,390 +23,197 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private final FileStoreService fileStoreService;
-
     private final SaleRepository saleRepository;
 
-    public ReportService(
-            FileStoreService fileStoreService,
-            SaleRepository saleRepository
-    ) {
-
-        this.fileStoreService =
-                fileStoreService;
-
-        this.saleRepository =
-                saleRepository;
+    public ReportService(FileStoreService fileStoreService, SaleRepository saleRepository) {
+        this.fileStoreService = fileStoreService;
+        this.saleRepository = saleRepository;
     }
 
-    public MonthlySummaryResponse monthlySummary(
-            YearMonth month
-    ) {
+    public MonthlySummaryResponse monthlySummary(YearMonth month) {
+        List<Sale> sales = saleRepository.findAll()
+                .stream()
+                .filter(s -> YearMonth.from(s.getSoldAt()).equals(month))
+                .collect(Collectors.toList());
 
-        List<Sale> sales =
-                saleRepository.findAll()
-                        .stream()
-                        .filter(
-                                s -> YearMonth.from(
-                                        s.getSoldAt()
-                                ).equals(month)
-                        )
-                        .collect(Collectors.toList());
+        BigDecimal totalRevenue = sales.stream().map(Sale::getGrossAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCost = sales.stream().map(Sale::getProductCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalFees = sales.stream().map(Sale::getMarketplaceFee).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalShipping = sales.stream().map(Sale::getShippingCost).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalProfit = sales.stream().map(Sale::getProfit).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal totalRevenue =
-                sales.stream()
-                        .map(Sale::getGrossAmount)
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        BigDecimal totalCost =
-                sales.stream()
-                        .map(Sale::getProductCost)
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        BigDecimal totalFees =
-                sales.stream()
-                        .map(Sale::getMarketplaceFee)
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        BigDecimal totalShipping =
-                sales.stream()
-                        .map(Sale::getShippingCost)
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        BigDecimal totalProfit =
-                sales.stream()
-                        .map(Sale::getProfit)
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        Map<String, List<Sale>> grouped =
-                sales.stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        Sale::getSku
-                                )
-                        );
-
-        List<MonthlySummaryResponse.ProductSummary> products =
-                new ArrayList<MonthlySummaryResponse.ProductSummary>();
+        Map<String, List<Sale>> grouped = sales.stream().collect(Collectors.groupingBy(Sale::getSku));
+        List<MonthlySummaryResponse.ProductSummary> products = new ArrayList<>();
 
         for (Map.Entry<String, List<Sale>> e : grouped.entrySet()) {
-
-            List<Sale> list =
-                    e.getValue();
-
-            MonthlySummaryResponse.ProductSummary item =
-                    new MonthlySummaryResponse.ProductSummary();
-
-            item.setSku(
-                    e.getKey()
-            );
-
-            item.setProductName(
-                    list.get(0)
-                            .getProductName()
-            );
-
-            item.setQuantitySold(
-                    list.stream()
-                            .mapToInt(
-                                    Sale::getQuantity
-                            )
-                            .sum()
-            );
-
-            item.setRevenue(
-                    list.stream()
-                            .map(
-                                    Sale::getGrossAmount
-                            )
-                            .reduce(
-                                    BigDecimal.ZERO,
-                                    BigDecimal::add
-                            )
-            );
-
-            item.setCost(
-                    list.stream()
-                            .map(
-                                    Sale::getProductCost
-                            )
-                            .reduce(
-                                    BigDecimal.ZERO,
-                                    BigDecimal::add
-                            )
-            );
-
-            item.setProfit(
-                    list.stream()
-                            .map(
-                                    Sale::getProfit
-                            )
-                            .reduce(
-                                    BigDecimal.ZERO,
-                                    BigDecimal::add
-                            )
-            );
-
-            products.add(
-                    item
-            );
+            List<Sale> list = e.getValue();
+            MonthlySummaryResponse.ProductSummary item = new MonthlySummaryResponse.ProductSummary();
+            item.setSku(e.getKey());
+            item.setProductName(list.get(0).getProductName());
+            item.setQuantitySold(list.stream().mapToInt(Sale::getQuantity).sum());
+            item.setRevenue(list.stream().map(Sale::getGrossAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
+            item.setCost(list.stream().map(Sale::getProductCost).reduce(BigDecimal.ZERO, BigDecimal::add));
+            item.setProfit(list.stream().map(Sale::getProfit).reduce(BigDecimal.ZERO, BigDecimal::add));
+            products.add(item);
         }
 
-        MonthlySummaryResponse response =
-                new MonthlySummaryResponse();
-
-        response.setMonth(
-                month.toString()
-        );
-
-        response.setTotalRevenue(
-                totalRevenue
-        );
-
-        response.setTotalCost(
-                totalCost
-        );
-
-        response.setTotalFees(
-                totalFees
-        );
-
-        response.setTotalShipping(
-                totalShipping
-        );
-
-        response.setTotalProfit(
-                totalProfit
-        );
-
-        response.setProducts(
-                products
-        );
+        MonthlySummaryResponse response = new MonthlySummaryResponse();
+        response.setMonth(month.toString());
+        response.setTotalRevenue(totalRevenue);
+        response.setTotalCost(totalCost);
+        response.setTotalFees(totalFees);
+        response.setTotalShipping(totalShipping);
+        response.setTotalProfit(totalProfit);
+        response.setProducts(products);
 
         return response;
     }
 
-    public Path generateExcel(
-            YearMonth month
-    ) {
+    public Path generateExcel(YearMonth month) {
+        MonthlySummaryResponse summary = monthlySummary(month);
 
-        MonthlySummaryResponse summary =
-                monthlySummary(
-                        month
-                );
+        // Recupera a lista de vendas do período para processar os dados locais das novas abas
+        List<Sale> sales = saleRepository.findAll()
+                .stream()
+                .filter(s -> YearMonth.from(s.getSoldAt()).equals(month))
+                .collect(Collectors.toList());
 
-        Path output =
-                fileStoreService.getDataDir()
-                        .resolve(
-                                "fechamento-" +
-                                        month +
-                                        ".xlsx"
-                        );
+        // Etapa 1: Cálculos de apoio para a aba Resumo
+        int totalOrders = sales.size();
+        int totalUnits = sales.stream().mapToInt(Sale::getQuantity).sum();
+        BigDecimal averageTicket = totalOrders > 0
+                ? summary.getTotalRevenue().divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
 
-        try (Workbook workbook =
-                     new XSSFWorkbook()) {
+        Path output = fileStoreService.getDataDir()
+                .resolve("fechamento-" + month + ".xlsx");
 
-            Sheet resumo =
-                    workbook.createSheet(
-                            "Resumo"
-                    );
+        try (Workbook workbook = new XSSFWorkbook()) {
 
-            Sheet vendas =
-                    workbook.createSheet(
-                            "Vendas"
-                    );
+            Sheet resumo = workbook.createSheet("Resumo");
+            Sheet vendas = workbook.createSheet("Vendas");
+            Sheet produtos = workbook.createSheet("Produtos");
 
-            Sheet produtos =
-                    workbook.createSheet(
-                            "Produtos"
-                    );
+            CellStyle headerStyle = createHeaderStyle(workbook);
 
-            CellStyle headerStyle =
-                    createHeaderStyle(
-                            workbook
-                    );
-
+            // ==========================================
+            // ETAPA 1: PREENCHIMENTO DA ABA RESUMO
+            // ==========================================
             int r = 0;
+            Row h = resumo.createRow(r++);
 
-            Row h =
-                    resumo.createRow(
-                            r++
-                    );
+            createHeaderCell(h, 0, "Mês", headerStyle);
+            createHeaderCell(h, 1, "Faturamento", headerStyle);
+            createHeaderCell(h, 2, "Custos", headerStyle);
+            createHeaderCell(h, 3, "Taxas", headerStyle);
+            createHeaderCell(h, 4, "Frete", headerStyle);
+            createHeaderCell(h, 5, "Lucro", headerStyle);
+            createHeaderCell(h, 6, "Pedidos", headerStyle);
+            createHeaderCell(h, 7, "Unidades Vendidas", headerStyle);
+            createHeaderCell(h, 8, "Ticket Médio", headerStyle);
 
-            createHeaderCell(
-                    h,
-                    0,
-                    "Mês",
-                    headerStyle
-            );
+            Row row = resumo.createRow(r++);
+            row.createCell(0).setCellValue(summary.getMonth());
+            row.createCell(1).setCellValue(summary.getTotalRevenue().doubleValue());
+            row.createCell(2).setCellValue(summary.getTotalCost().doubleValue());
+            row.createCell(3).setCellValue(summary.getTotalFees().doubleValue());
+            row.createCell(4).setCellValue(summary.getTotalShipping().doubleValue());
+            row.createCell(5).setCellValue(summary.getTotalProfit().doubleValue());
+            row.createCell(6).setCellValue(totalOrders);
+            row.createCell(7).setCellValue(totalUnits);
+            row.createCell(8).setCellValue(averageTicket.doubleValue());
 
-            createHeaderCell(
-                    h,
-                    1,
-                    "Faturamento",
-                    headerStyle
-            );
+            autoSize(resumo, 9);
 
-            createHeaderCell(
-                    h,
-                    2,
-                    "Custos",
-                    headerStyle
-            );
+            // ==========================================
+            // ETAPA 2: PREENCHIMENTO DA ABA VENDAS
+            // ==========================================
+            int vr = 0;
+            Row vh = vendas.createRow(vr++);
 
-            createHeaderCell(
-                    h,
-                    3,
-                    "Taxas",
-                    headerStyle
-            );
+            createHeaderCell(vh, 0, "Data", headerStyle);
+            createHeaderCell(vh, 1, "Marketplace", headerStyle);
+            createHeaderCell(vh, 2, "Pedido", headerStyle);
+            createHeaderCell(vh, 3, "Produto", headerStyle);
+            createHeaderCell(vh, 4, "SKU", headerStyle);
+            createHeaderCell(vh, 5, "Anúncio", headerStyle);
+            createHeaderCell(vh, 6, "Qtd", headerStyle);
+            createHeaderCell(vh, 7, "Faturamento", headerStyle);
+            createHeaderCell(vh, 8, "Custo", headerStyle);
+            createHeaderCell(vh, 9, "Lucro", headerStyle);
 
-            createHeaderCell(
-                    h,
-                    4,
-                    "Frete",
-                    headerStyle
-            );
+            for (Sale sale : sales) {
+                Row rowVenda = vendas.createRow(vr++);
 
-            createHeaderCell(
-                    h,
-                    5,
-                    "Lucro",
-                    headerStyle
-            );
+                rowVenda.createCell(0).setCellValue(sale.getSoldAt() != null ? sale.getSoldAt().toString() : "");
+                rowVenda.createCell(1).setCellValue(sale.getMarketplace() != null ? sale.getMarketplace().name() : "");
+                rowVenda.createCell(2).setCellValue(sale.getOrderId());
+                rowVenda.createCell(3).setCellValue(sale.getProductName());
+                rowVenda.createCell(4).setCellValue(sale.getSku());
+                rowVenda.createCell(5).setCellValue(sale.getMarketplaceItemId());
+                rowVenda.createCell(6).setCellValue(sale.getQuantity());
+                rowVenda.createCell(7).setCellValue(sale.getNetAmount() != null ? sale.getNetAmount().doubleValue() : 0.0);
+                rowVenda.createCell(8).setCellValue(sale.getProductCost() != null ? sale.getProductCost().multiply(BigDecimal.valueOf(sale.getQuantity())).doubleValue() : 0.0);
+                rowVenda.createCell(9).setCellValue(sale.getProfit() != null ? sale.getProfit().doubleValue() : 0.0);
+            }
 
-            Row row =
-                    resumo.createRow(
-                            r++
-                    );
+            autoSize(vendas, 10);
 
-            row.createCell(0)
-                    .setCellValue(
-                            summary.getMonth()
-                    );
+            // ==========================================
+            // ETAPA 3: PREENCHIMENTO DA ABA PRODUTOS
+            // ==========================================
+            int pr = 0;
+            Row ph = produtos.createRow(pr++);
 
-            row.createCell(1)
-                    .setCellValue(
-                            summary.getTotalRevenue()
-                                    .doubleValue()
-                    );
+            createHeaderCell(ph, 0, "Produto", headerStyle);
+            createHeaderCell(ph, 1, "SKU", headerStyle);
+            createHeaderCell(ph, 2, "Vendidas", headerStyle);
+            createHeaderCell(ph, 3, "Receita", headerStyle);
+            createHeaderCell(ph, 4, "Custo", headerStyle);
+            createHeaderCell(ph, 5, "Lucro", headerStyle);
 
-            row.createCell(2)
-                    .setCellValue(
-                            summary.getTotalCost()
-                                    .doubleValue()
-                    );
+            for (MonthlySummaryResponse.ProductSummary p : summary.getProducts()) {
+                Row rowProduto = produtos.createRow(pr++);
 
-            row.createCell(3)
-                    .setCellValue(
-                            summary.getTotalFees()
-                                    .doubleValue()
-                    );
+                rowProduto.createCell(0).setCellValue(p.getProductName());
+                rowProduto.createCell(1).setCellValue(p.getSku());
+                rowProduto.createCell(2).setCellValue(p.getQuantitySold());
+                rowProduto.createCell(3).setCellValue(p.getRevenue() != null ? p.getRevenue().doubleValue() : 0.0);
+                rowProduto.createCell(4).setCellValue(p.getCost() != null ? p.getCost().doubleValue() : 0.0);
+                rowProduto.createCell(5).setCellValue(p.getProfit() != null ? p.getProfit().doubleValue() : 0.0);
+            }
 
-            row.createCell(4)
-                    .setCellValue(
-                            summary.getTotalShipping()
-                                    .doubleValue()
-                    );
+            autoSize(produtos, 6);
 
-            row.createCell(5)
-                    .setCellValue(
-                            summary.getTotalProfit()
-                                    .doubleValue()
-                    );
-
-            autoSize(
-                    resumo,
-                    6
-            );
-
-            try (OutputStream os =
-                         Files.newOutputStream(
-                                 output
-                         )) {
-
-                workbook.write(
-                        os
-                );
+            // Escrita final no OutputStream
+            try (OutputStream os = Files.newOutputStream(output)) {
+                workbook.write(os);
             }
 
             return output;
 
         } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Erro ao gerar Excel",
-                    e
-            );
+            throw new RuntimeException("Erro ao gerar Excel", e);
         }
     }
 
-    private CellStyle createHeaderStyle(
-            Workbook workbook
-    ) {
-
-        Font font =
-                workbook.createFont();
-
-        font.setBold(
-                true
-        );
-
-        CellStyle style =
-                workbook.createCellStyle();
-
-        style.setFont(
-                font
-        );
-
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        Font font = workbook.createFont();
+        font.setBold(true);
+        CellStyle style = workbook.createCellStyle();
+        style.setFont(font);
         return style;
     }
 
-    private void createHeaderCell(
-            Row row,
-            int col,
-            String value,
-            CellStyle style
-    ) {
-
-        Cell cell =
-                row.createCell(
-                        col
-                );
-
-        cell.setCellValue(
-                value
-        );
-
-        cell.setCellStyle(
-                style
-        );
+    private void createHeaderCell(Row row, int col, String value, CellStyle style) {
+        Cell cell = row.createCell(col);
+        cell.setCellValue(value);
+        cell.setCellStyle(style);
     }
 
-    private void autoSize(
-            Sheet sheet,
-            int columns
-    ) {
-
+    private void autoSize(Sheet sheet, int columns) {
         for (int i = 0; i < columns; i++) {
-
-            sheet.autoSizeColumn(
-                    i
-            );
+            sheet.autoSizeColumn(i);
         }
     }
 }

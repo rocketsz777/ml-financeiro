@@ -25,6 +25,7 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
+                                "https://ml-financeiro-frontend.vercel.app",
                                 "http://127.0.0.1:5173",
                                 frontendUrl
                         )
