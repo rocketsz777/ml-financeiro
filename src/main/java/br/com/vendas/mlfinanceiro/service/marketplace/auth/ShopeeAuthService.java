@@ -20,6 +20,10 @@ import java.util.Map;
 @Service
 public class ShopeeAuthService {
 
+    // CONSTANTES
+    private static final String MARKETPLACE_NAME = "SHOPEE";
+    private static final String PARTNER_ID_PARAM = "partner_id";
+
     @Value("${shopee.partner-id}")
     private String partnerId;
 
@@ -109,7 +113,7 @@ public class ShopeeAuthService {
         );
 
         requestBody.put(
-                "partner_id",
+                PARTNER_ID_PARAM,
                 Long.valueOf(partnerId)
         );
 
@@ -119,7 +123,7 @@ public class ShopeeAuthService {
                                 uriBuilder
                                         .path(path)
                                         .queryParam(
-                                                "partner_id",
+                                                PARTNER_ID_PARAM,
                                                 partnerId
                                         )
                                         .queryParam(
@@ -151,7 +155,7 @@ public class ShopeeAuthService {
         }
 
         tokenService.save(
-                "SHOPEE",
+                MARKETPLACE_NAME,
                 String.valueOf(
                         newToken.getShop_id() != null
                                 ? newToken.getShop_id()
@@ -169,7 +173,7 @@ public class ShopeeAuthService {
 
         MarketplaceToken token =
                 tokenService.getByMarketplace(
-                        "SHOPEE"
+                        MARKETPLACE_NAME
                 );
 
         if (tokenService.isExpired(token)) {
@@ -179,7 +183,7 @@ public class ShopeeAuthService {
 
         return tokenService
                 .getByMarketplace(
-                        "SHOPEE"
+                        MARKETPLACE_NAME
                 )
                 .getAccessToken();
     }
@@ -188,7 +192,7 @@ public class ShopeeAuthService {
 
         MarketplaceToken currentToken =
                 tokenService.getByMarketplace(
-                        "SHOPEE"
+                        MARKETPLACE_NAME
                 );
 
         String path =
@@ -221,7 +225,7 @@ public class ShopeeAuthService {
         );
 
         requestBody.put(
-                "partner_id",
+                PARTNER_ID_PARAM,
                 Long.valueOf(partnerId)
         );
 
@@ -231,7 +235,7 @@ public class ShopeeAuthService {
                                 uriBuilder
                                         .path(path)
                                         .queryParam(
-                                                "partner_id",
+                                                PARTNER_ID_PARAM,
                                                 partnerId
                                         )
                                         .queryParam(
@@ -263,7 +267,7 @@ public class ShopeeAuthService {
         }
 
         tokenService.save(
-                "SHOPEE",
+                MARKETPLACE_NAME,
                 currentToken.getSellerId(),
                 newToken.getAccess_token(),
                 newToken.getRefresh_token(),

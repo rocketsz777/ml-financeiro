@@ -2,14 +2,16 @@ package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.Sale;
 import br.com.vendas.mlfinanceiro.dto.MonthlySummaryResponse;
-import br.com.vendas.mlfinanceiro.dto.SaleRequest;
 import br.com.vendas.mlfinanceiro.service.report.ReportService;
 import br.com.vendas.mlfinanceiro.service.sales.SalesService;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.Path;
 import java.time.YearMonth;
@@ -35,18 +37,6 @@ public class SalesController {
 
         this.reportService =
                 reportService;
-    }
-
-    @PostMapping
-    public Sale registerSale(
-
-            @RequestBody
-            SaleRequest request
-    ) {
-
-        return salesService.registerSale(
-                request
-        );
     }
 
     @GetMapping

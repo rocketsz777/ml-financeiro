@@ -1,12 +1,14 @@
 package br.com.vendas.mlfinanceiro.controller;
 
 import br.com.vendas.mlfinanceiro.domain.Product;
+import br.com.vendas.mlfinanceiro.dto.ProductPerformanceResponse;
 import br.com.vendas.mlfinanceiro.dto.ProductRequest;
 import br.com.vendas.mlfinanceiro.service.product.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/produtos")
@@ -175,16 +177,12 @@ public class ProductController {
     }
 
     @GetMapping("/performance")
-    public ResponseEntity<?> getPerformance(
+    public ResponseEntity<Map<String, ProductPerformanceResponse>> getPerformance(
             @RequestParam String period
     ) {
 
         return ResponseEntity.ok(
-
-                productService
-                        .getPerformance(
-                                period
-                        )
+                productService.getPerformance(period)
         );
     }
 }

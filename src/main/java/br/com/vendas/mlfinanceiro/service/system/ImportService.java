@@ -5,17 +5,19 @@ import br.com.vendas.mlfinanceiro.service.marketplace.auth.MercadoLivreAuthServi
 import br.com.vendas.mlfinanceiro.service.marketplace.importer.MercadoLivreImportService;
 import br.com.vendas.mlfinanceiro.service.marketplace.importer.ShopeeImportService;
 import br.com.vendas.mlfinanceiro.service.marketplace.token.MarketplaceTokenService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ImportService {
 
+    // Instanciando o Logger oficial do SLF4J para produção
+    private static final Logger log = LoggerFactory.getLogger(ImportService.class);
+
     private final MercadoLivreImportService mercadoLivreImportService;
-
     private final MercadoLivreAuthService mercadoLivreAuthService;
-
     private final ShopeeImportService shopeeImportService;
-
     private final MarketplaceTokenService tokenService;
 
     public ImportService(
@@ -24,111 +26,50 @@ public class ImportService {
             ShopeeImportService shopeeImportService,
             MarketplaceTokenService tokenService
     ) {
-
-        this.mercadoLivreImportService =
-                mercadoLivreImportService;
-
-        this.mercadoLivreAuthService =
-                mercadoLivreAuthService;
-
-        this.shopeeImportService =
-                shopeeImportService;
-
-        this.tokenService =
-                tokenService;
+        this.mercadoLivreImportService = mercadoLivreImportService;
+        this.mercadoLivreAuthService = mercadoLivreAuthService;
+        this.shopeeImportService = shopeeImportService;
+        this.tokenService = tokenService;
     }
 
     public ImportSalesResponse importSales() {
+        ImportSalesResponse response = new ImportSalesResponse();
+        int mercadoLivreImported = 0;
+        int shopeeImported = 0;
 
-        ImportSalesResponse response =
-                new ImportSalesResponse();
-
-        int mercadoLivreImported =
-                0;
-
-        int shopeeImported =
-                0;
-
+        // --- BLOCO MERCADO LIVRE ---
         try {
+            log.info("Iniciando importação de vendas do Mercado Livre.");
 
-            System.out.println(
-                    "INICIANDO IMPORTAÇÃO ML"
-            );
+            mercadoLivreAuthService.getValidAccessToken();
+            mercadoLivreImported = mercadoLivreImportService.importOrders();
 
-            mercadoLivreAuthService
-                    .getValidAccessToken();
-
-            mercadoLivreImported =
-                    mercadoLivreImportService
-                            .importOrders();
-
-            System.out.println(
-                    "IMPORTADOS ML: "
-                            + mercadoLivreImported
-            );
-
+            log.info("Importação concluída com sucesso. Total Mercado Livre: {}", mercadoLivreImported);
         } catch (Exception e) {
-
-            System.out.println(
-                    "ERRO MERCADO LIVRE:"
-            );
-
-            System.out.println(
-                    e.getMessage()
-            );
-
-            e.printStackTrace();
+            // log.error grava a mensagem e a stack trace de forma eficiente sem travar a aplicação
+            log.error("Erro ao importar dados do Mercado Livre: {}", e.getMessage(), e);
         }
 
+        // --- BLOCO SHOPEE ---
         try {
+            log.info("Iniciando importação de vendas da Shopee.");
 
-            System.out.println(
-                    "INICIANDO IMPORTAÇÃO SHOPEE"
-            );
+            tokenService.getByMarketplace("SHOPEE");
+            shopeeImported = shopeeImportService.importOrders();
 
-            tokenService.getByMarketplace(
-                    "SHOPEE"
-            );
-
-            shopeeImported =
-                    shopeeImportService
-                            .importOrders();
-
-            System.out.println(
-                    "IMPORTADOS SHOPEE: "
-                            + shopeeImported
-            );
-
+            log.info("Importação concluída com sucesso. Total Shopee: {}", shopeeImported);
         } catch (Exception e) {
-
-            System.out.println(
-                    "ERRO SHOPEE:"
-            );
-
-            System.out.println(
-                    e.getMessage()
-            );
-
-            e.printStackTrace();
+            log.error("Erro ao importar dados da Shopee: {}", e.getMessage(), e);
         }
 
-        response.setMercadoLivreImported(
-                mercadoLivreImported
-        );
+        // --- PROCESSAMENTO DO CORPO DA RESPOSTA ---
+        int totalImported = mercadoLivreImported + shopeeImported;
 
-        response.setShopeeImported(
-                shopeeImported
-        );
+        response.setMercadoLivreImported(mercadoLivreImported);
+        response.setShopeeImported(shopeeImported);
+        response.setTotalImported(totalImported);
 
-        response.setTotalImported(
-                mercadoLivreImported
-                        + shopeeImported
-        );
-
-        System.out.println(
-                "TOTAL IMPORTADO: "
-                        + response.getTotalImported()
-        );
+        log.info("Resumo da execução - Total importado combinado: {}", totalImported);
 
         return response;
     }

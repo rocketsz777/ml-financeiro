@@ -13,6 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 public class MercadoLivreAuthService {
 
+    // CONSTANTES
+    private static final String CLIENT_ID_PARAM = "&client_id=";
+    private static final String MARKETPLACE_NAME = "MERCADO_LIVRE";
+
     @Value("${mercadolivre.client-id}")
     private String clientId;
 
@@ -45,7 +49,7 @@ public class MercadoLivreAuthService {
 
         return "https://auth.mercadolivre.com.br/authorization"
                 + "?response_type=code"
-                + "&client_id=" + clientId
+                + CLIENT_ID_PARAM + clientId
                 + "&redirect_uri=" + redirectUri;
     }
 
@@ -55,7 +59,7 @@ public class MercadoLivreAuthService {
 
         String requestBody =
                 "grant_type=authorization_code"
-                        + "&client_id=" + clientId
+                        + CLIENT_ID_PARAM + clientId
                         + "&client_secret=" + clientSecret
                         + "&code=" + code
                         + "&redirect_uri=" + redirectUri;
@@ -84,7 +88,7 @@ public class MercadoLivreAuthService {
             );
 
             tokenService.save(
-                    "MERCADO_LIVRE",
+                    MARKETPLACE_NAME,
                     String.valueOf(
                             newToken.getUser_id()
                     ),
@@ -101,7 +105,7 @@ public class MercadoLivreAuthService {
 
         MarketplaceToken token =
                 tokenService.getByMarketplace(
-                        "MERCADO_LIVRE"
+                        MARKETPLACE_NAME
                 );
 
         if (tokenService.isExpired(token)) {
@@ -111,7 +115,7 @@ public class MercadoLivreAuthService {
 
         return tokenService
                 .getByMarketplace(
-                        "MERCADO_LIVRE"
+                        MARKETPLACE_NAME
                 )
                 .getAccessToken();
     }
@@ -120,12 +124,12 @@ public class MercadoLivreAuthService {
 
         MarketplaceToken currentToken =
                 tokenService.getByMarketplace(
-                        "MERCADO_LIVRE"
+                        MARKETPLACE_NAME
                 );
 
         String requestBody =
                 "grant_type=refresh_token"
-                        + "&client_id=" + clientId
+                        + CLIENT_ID_PARAM + clientId
                         + "&client_secret=" + clientSecret
                         + "&refresh_token="
                         + currentToken.getRefreshToken();
@@ -151,7 +155,7 @@ public class MercadoLivreAuthService {
         }
 
         tokenService.save(
-                "MERCADO_LIVRE",
+                MARKETPLACE_NAME,
                 String.valueOf(
                         newToken.getUser_id()
                 ),

@@ -14,6 +14,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Component
 public class MercadoLivreClient {
 
+
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final MercadoLivreAuthService authService;
 
     private final WebClient webClient;
@@ -38,7 +41,7 @@ public class MercadoLivreClient {
                 .uri("/users/me")
                 .header(
                         HttpHeaders.AUTHORIZATION,
-                        "Bearer " + accessToken
+                        BEARER_PREFIX + accessToken
                 )
                 .retrieve()
                 .bodyToMono(String.class)
@@ -56,7 +59,7 @@ public class MercadoLivreClient {
                         .uri("/users/me")
                         .header(
                                 HttpHeaders.AUTHORIZATION,
-                                "Bearer " + accessToken
+                                BEARER_PREFIX + accessToken
                         )
                         .retrieve()
                         .bodyToMono(
@@ -99,7 +102,7 @@ public class MercadoLivreClient {
                 )
                 .header(
                         HttpHeaders.AUTHORIZATION,
-                        "Bearer " + accessToken
+                        BEARER_PREFIX + accessToken
                 )
                 .retrieve()
                 .bodyToMono(
@@ -107,6 +110,7 @@ public class MercadoLivreClient {
                 )
                 .block();
     }
+
     public MercadoLivreOrderResponse getOrders(
             int offset,
             int limit
@@ -149,7 +153,7 @@ public class MercadoLivreClient {
 
                 .header(
                         HttpHeaders.AUTHORIZATION,
-                        "Bearer " + accessToken
+                        BEARER_PREFIX + accessToken
                 )
 
                 .retrieve()
@@ -174,7 +178,7 @@ public class MercadoLivreClient {
                 .uri("/orders/" + orderId)
                 .header(
                         HttpHeaders.AUTHORIZATION,
-                        "Bearer " + accessToken
+                        BEARER_PREFIX + accessToken
                 )
                 .retrieve()
                 .bodyToMono(
@@ -219,7 +223,7 @@ public class MercadoLivreClient {
 
         return webClient.get()
                 .uri("/shipments/" + shippingId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + accessToken)
                 .retrieve()
                 .bodyToMono(MercadoLivreShipmentResponse.class)
                 .block();
