@@ -1,7 +1,9 @@
 package br.com.vendas.mlfinanceiro.service.report;
 
 import br.com.vendas.mlfinanceiro.domain.Sale;
+import br.com.vendas.mlfinanceiro.domain.ExtraCost;
 import br.com.vendas.mlfinanceiro.dto.MonthlySummaryResponse;
+import br.com.vendas.mlfinanceiro.repository.ExtraCostRepository;
 import br.com.vendas.mlfinanceiro.repository.SaleRepository;
 import br.com.vendas.mlfinanceiro.service.file.FileStoreService;
 import org.apache.poi.ss.usermodel.*;
@@ -14,6 +16,8 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,25 +31,24 @@ public class ReportService {
 
     private final FileStoreService fileStoreService;
     private final SaleRepository saleRepository;
+    private final ExtraCostRepository extraCostRepository;
 
-    public ReportService(FileStoreService fileStoreService, SaleRepository saleRepository) {
+    public ReportService(FileStoreService fileStoreService, SaleRepository saleRepository, ExtraCostRepository extraCostRepository) {
         this.fileStoreService = fileStoreService;
         this.saleRepository = saleRepository;
+        this.extraCostRepository = extraCostRepository;
     }
 
     public MonthlySummaryResponse monthlySummary(YearMonth month) {
-        List<Sale> sales = saleRepository.findAll()
-                .stream()
-                .filter(s -> YearMonth.from(s.getSoldAt()).equals(month))
-                .collect(Collectors.toList());
+        List<Sale> sales = salesForMonth(month);
 
-        BigDecimal totalRevenue = sales.stream().map(Sale::getGrossAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalCost = sales.stream().map(Sale::getProductCost).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalFees = sales.stream().map(Sale::getMarketplaceFee).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalShipping = sales.stream().map(Sale::getShippingCost).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalProfit = sales.stream().map(Sale::getProfit).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRevenue = sales.stream().map(s -> s.getNetAmount() != null ? s.getNetAmount() : nz(s.getGrossAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCost = sales.stream().map(s -> nz(s.getProductCost()).multiply(BigDecimal.valueOf(s.getQuantity() == null ? 0 : s.getQuantity())).add(nz(s.getExtraCosts()))).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalFees = sales.stream().map(s -> nz(s.getMarketplaceFee())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalShipping = sales.stream().map(s -> nz(s.getShippingCost())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalProfit = sales.stream().map(s -> nz(s.getProfit())).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Map<String, List<Sale>> grouped = sales.stream().collect(Collectors.groupingBy(Sale::getSku));
+        Map<String, List<Sale>> grouped = sales.stream().collect(Collectors.groupingBy(s -> s.getSku() == null ? "SEM SKU" : s.getSku()));
         List<MonthlySummaryResponse.ProductSummary> products = new ArrayList<>();
 
         for (Map.Entry<String, List<Sale>> e : grouped.entrySet()) {
@@ -53,10 +56,10 @@ public class ReportService {
             MonthlySummaryResponse.ProductSummary item = new MonthlySummaryResponse.ProductSummary();
             item.setSku(e.getKey());
             item.setProductName(list.get(0).getProductName());
-            item.setQuantitySold(list.stream().mapToInt(Sale::getQuantity).sum());
-            item.setRevenue(list.stream().map(Sale::getGrossAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
-            item.setCost(list.stream().map(Sale::getProductCost).reduce(BigDecimal.ZERO, BigDecimal::add));
-            item.setProfit(list.stream().map(Sale::getProfit).reduce(BigDecimal.ZERO, BigDecimal::add));
+            item.setQuantitySold(list.stream().mapToInt(s -> s.getQuantity() == null ? 0 : s.getQuantity()).sum());
+            item.setRevenue(list.stream().map(s -> s.getNetAmount() != null ? s.getNetAmount() : nz(s.getGrossAmount())).reduce(BigDecimal.ZERO, BigDecimal::add));
+            item.setCost(list.stream().map(s -> nz(s.getProductCost()).multiply(BigDecimal.valueOf(s.getQuantity() == null ? 0 : s.getQuantity()))).reduce(BigDecimal.ZERO, BigDecimal::add));
+            item.setProfit(list.stream().map(s -> nz(s.getProfit())).reduce(BigDecimal.ZERO, BigDecimal::add));
             products.add(item);
         }
 
@@ -75,21 +78,20 @@ public class ReportService {
     public Path generateExcel(YearMonth month) {
         MonthlySummaryResponse summary = monthlySummary(month);
 
-        List<Sale> sales = saleRepository.findAll()
-                .stream()
-                .filter(s -> YearMonth.from(s.getSoldAt()).equals(month))
-                .collect(Collectors.toList());
+        List<Sale> sales = salesForMonth(month);
 
         Path output = fileStoreService.getDataDir()
                 .resolve("fechamento-" + month + ".xlsx");
 
         try (Workbook workbook = new XSSFWorkbook()) {
             CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle currencyStyle = createCurrencyStyle(workbook);
+            List<ExtraCost> manualCosts = extraCostRepository.findByActiveTrue();
 
-            // Chamada dos métodos extraídos para preenchimento individualizado
-            fillResumoSheet(workbook, summary, sales, headerStyle);
-            fillVendasSheet(workbook, sales, headerStyle);
-            fillProdutosSheet(workbook, summary, headerStyle);
+            fillResumoSheet(workbook, summary, sales, manualCosts, headerStyle, currencyStyle);
+            fillVendasSheet(workbook, sales, headerStyle, currencyStyle);
+            fillProdutosSheet(workbook, summary, sales, headerStyle, currencyStyle);
+            fillManualCostsSheet(workbook, manualCosts, headerStyle, currencyStyle);
 
             try (OutputStream os = Files.newOutputStream(output)) {
                 workbook.write(os);
@@ -102,43 +104,54 @@ public class ReportService {
         }
     }
 
-    private void fillResumoSheet(Workbook workbook, MonthlySummaryResponse summary, List<Sale> sales, CellStyle headerStyle) {
+    private List<Sale> salesForMonth(YearMonth month) {
+        return saleRepository.findAll().stream()
+                .filter(s -> s.getSoldAt() != null && YearMonth.from(s.getSoldAt()).equals(month))
+                .sorted(Comparator.comparing(Sale::getSoldAt))
+                .collect(Collectors.toList());
+    }
+
+    private void fillResumoSheet(Workbook workbook, MonthlySummaryResponse summary, List<Sale> sales, List<ExtraCost> manualCosts, CellStyle headerStyle, CellStyle currencyStyle) {
         Sheet resumo = workbook.createSheet("Resumo");
 
+        BigDecimal productCost = sales.stream().map(s -> nz(s.getProductCost()).multiply(BigDecimal.valueOf(s.getQuantity() == null ? 0 : s.getQuantity()))).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal saleExtraCosts = sales.stream().map(s -> nz(s.getExtraCosts())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal manualExtraCosts = manualCosts.stream().map(c -> nz(c.getValue())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
         int totalOrders = sales.size();
-        int totalUnits = sales.stream().mapToInt(Sale::getQuantity).sum();
+        int totalUnits = sales.stream().mapToInt(s -> s.getQuantity() == null ? 0 : s.getQuantity()).sum();
         BigDecimal averageTicket = totalOrders > 0
-                ? summary.getTotalRevenue().divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP)
+                ? nz(summary.getTotalRevenue()).divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO;
 
         // Criando as linhas com índices fixos (0 e 1), eliminando a variável 'r'
         Row h = resumo.createRow(0);
 
-        createHeaderCell(h, 0, "Mês", headerStyle);
-        createHeaderCell(h, 1, "Faturamento", headerStyle);
-        createHeaderCell(h, 2, "Custos", headerStyle);
-        createHeaderCell(h, 3, "Taxas", headerStyle);
-        createHeaderCell(h, 4, "Frete", headerStyle);
-        createHeaderCell(h, 5, LUCRO_LABEL, headerStyle);
-        createHeaderCell(h, 6, "Pedidos", headerStyle);
-        createHeaderCell(h, 7, "Unidades Vendidas", headerStyle);
-        createHeaderCell(h, 8, "Ticket Médio", headerStyle);
+        String[] headers = {"Mês", "Primeira venda", "Última venda", "Faturamento líquido", "Custo produtos vendidos", "Extras por venda", "Extras manuais cadastrados", "Taxas marketplace", "Frete", "Lucro registrado", "Lucro após extras manuais", "Custo total do mês", "Vendas", "Unidades vendidas", "Ticket médio"};
+        for (int i = 0; i < headers.length; i++) createHeaderCell(h, i, headers[i], headerStyle);
 
         Row row = resumo.createRow(1);
         row.createCell(0).setCellValue(summary.getMonth());
-        row.createCell(1).setCellValue(summary.getTotalRevenue().doubleValue());
-        row.createCell(2).setCellValue(summary.getTotalCost().doubleValue());
-        row.createCell(3).setCellValue(summary.getTotalFees().doubleValue());
-        row.createCell(4).setCellValue(summary.getTotalShipping().doubleValue());
-        row.createCell(5).setCellValue(summary.getTotalProfit().doubleValue());
-        row.createCell(6).setCellValue(totalOrders);
-        row.createCell(7).setCellValue(totalUnits);
-        row.createCell(8).setCellValue(averageTicket.doubleValue());
+        row.createCell(1).setCellValue(sales.isEmpty() ? "Sem vendas" : sales.get(0).getSoldAt().format(dateFormat));
+        row.createCell(2).setCellValue(sales.isEmpty() ? "Sem vendas" : sales.get(sales.size() - 1).getSoldAt().format(dateFormat));
+        setCurrency(row.createCell(3), summary.getTotalRevenue(), currencyStyle);
+        setCurrency(row.createCell(4), productCost, currencyStyle);
+        setCurrency(row.createCell(5), saleExtraCosts, currencyStyle);
+        setCurrency(row.createCell(6), manualExtraCosts, currencyStyle);
+        setCurrency(row.createCell(7), summary.getTotalFees(), currencyStyle);
+        setCurrency(row.createCell(8), summary.getTotalShipping(), currencyStyle);
+        setCurrency(row.createCell(9), summary.getTotalProfit(), currencyStyle);
+        setCurrency(row.createCell(10), nz(summary.getTotalProfit()).subtract(manualExtraCosts), currencyStyle);
+        setCurrency(row.createCell(11), productCost.add(saleExtraCosts).add(manualExtraCosts).add(nz(summary.getTotalFees())).add(nz(summary.getTotalShipping())), currencyStyle);
+        row.createCell(12).setCellValue(totalOrders);
+        row.createCell(13).setCellValue(totalUnits);
+        setCurrency(row.createCell(14), averageTicket, currencyStyle);
 
-        autoSize(resumo, 9);
+        autoSize(resumo, headers.length);
     }
 
-    private void fillVendasSheet(Workbook workbook, List<Sale> sales, CellStyle headerStyle) {
+    private void fillVendasSheet(Workbook workbook, List<Sale> sales, CellStyle headerStyle, CellStyle currencyStyle) {
         Sheet vendas = workbook.createSheet("Vendas");
         int vr = 0;
         Row vh = vendas.createRow(vr++);
@@ -150,39 +163,52 @@ public class ReportService {
         createHeaderCell(vh, 4, "SKU", headerStyle);
         createHeaderCell(vh, 5, "Anúncio", headerStyle);
         createHeaderCell(vh, 6, "Qtd", headerStyle);
-        createHeaderCell(vh, 7, "Faturamento", headerStyle);
-        createHeaderCell(vh, 8, "Custo", headerStyle);
-        createHeaderCell(vh, 9, LUCRO_LABEL, headerStyle);
+        createHeaderCell(vh, 7, "Custo unitário", headerStyle);
+        createHeaderCell(vh, 8, "Custo total produtos", headerStyle);
+        createHeaderCell(vh, 9, "Custos extras venda", headerStyle);
+        createHeaderCell(vh, 10, "Faturamento", headerStyle);
+        createHeaderCell(vh, 11, "Taxas", headerStyle);
+        createHeaderCell(vh, 12, "Frete", headerStyle);
+        createHeaderCell(vh, 13, LUCRO_LABEL, headerStyle);
 
         for (Sale sale : sales) {
             Row rowVenda = vendas.createRow(vr++);
 
-            rowVenda.createCell(0).setCellValue(sale.getSoldAt() != null ? sale.getSoldAt().toString() : "");
+            rowVenda.createCell(0).setCellValue(sale.getSoldAt() != null ? sale.getSoldAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "");
             rowVenda.createCell(1).setCellValue(sale.getMarketplace() != null ? sale.getMarketplace().name() : "");
             rowVenda.createCell(2).setCellValue(sale.getOrderId());
             rowVenda.createCell(3).setCellValue(sale.getProductName());
             rowVenda.createCell(4).setCellValue(sale.getSku());
             rowVenda.createCell(5).setCellValue(sale.getMarketplaceItemId());
             rowVenda.createCell(6).setCellValue(sale.getQuantity());
-            rowVenda.createCell(7).setCellValue(sale.getNetAmount() != null ? sale.getNetAmount().doubleValue() : 0.0);
-            rowVenda.createCell(8).setCellValue(sale.getProductCost() != null ? sale.getProductCost().multiply(BigDecimal.valueOf(sale.getQuantity())).doubleValue() : 0.0);
-            rowVenda.createCell(9).setCellValue(sale.getProfit() != null ? sale.getProfit().doubleValue() : 0.0);
+            setCurrency(rowVenda.createCell(7), nz(sale.getProductCost()), currencyStyle);
+            setCurrency(rowVenda.createCell(8), nz(sale.getProductCost()).multiply(BigDecimal.valueOf(sale.getQuantity() == null ? 0 : sale.getQuantity())), currencyStyle);
+            setCurrency(rowVenda.createCell(9), nz(sale.getExtraCosts()), currencyStyle);
+            setCurrency(rowVenda.createCell(10), nz(sale.getNetAmount()), currencyStyle);
+            setCurrency(rowVenda.createCell(11), nz(sale.getMarketplaceFee()), currencyStyle);
+            setCurrency(rowVenda.createCell(12), nz(sale.getShippingCost()), currencyStyle);
+            setCurrency(rowVenda.createCell(13), nz(sale.getProfit()), currencyStyle);
         }
 
-        autoSize(vendas, 10);
+        autoSize(vendas, 14);
     }
 
-    private void fillProdutosSheet(Workbook workbook, MonthlySummaryResponse summary, CellStyle headerStyle) {
-        Sheet produtos = workbook.createSheet("Produtos");
+    private void fillProdutosSheet(Workbook workbook, MonthlySummaryResponse summary, List<Sale> sales, CellStyle headerStyle, CellStyle currencyStyle) {
+        Sheet produtos = workbook.createSheet("Fechamento por SKU");
         int pr = 0;
         Row ph = produtos.createRow(pr++);
 
         createHeaderCell(ph, 0, "Produto", headerStyle);
         createHeaderCell(ph, 1, "SKU", headerStyle);
         createHeaderCell(ph, 2, "Vendidas", headerStyle);
-        createHeaderCell(ph, 3, "Receita", headerStyle);
-        createHeaderCell(ph, 4, "Custo", headerStyle);
-        createHeaderCell(ph, 5, LUCRO_LABEL, headerStyle);
+        createHeaderCell(ph, 3, "Custo unitário médio", headerStyle);
+        createHeaderCell(ph, 4, "Custo total produtos", headerStyle);
+        createHeaderCell(ph, 5, "Extras das vendas", headerStyle);
+        createHeaderCell(ph, 6, "Faturamento", headerStyle);
+        createHeaderCell(ph, 7, LUCRO_LABEL, headerStyle);
+
+        Map<String, BigDecimal> saleExtrasBySku = sales.stream()
+                .collect(Collectors.groupingBy(s -> s.getSku() == null ? "" : s.getSku(), Collectors.reducing(BigDecimal.ZERO, s -> nz(s.getExtraCosts()), BigDecimal::add)));
 
         for (MonthlySummaryResponse.ProductSummary p : summary.getProducts()) {
             Row rowProduto = produtos.createRow(pr++);
@@ -190,12 +216,34 @@ public class ReportService {
             rowProduto.createCell(0).setCellValue(p.getProductName());
             rowProduto.createCell(1).setCellValue(p.getSku());
             rowProduto.createCell(2).setCellValue(p.getQuantitySold());
-            rowProduto.createCell(3).setCellValue(p.getRevenue() != null ? p.getRevenue().doubleValue() : 0.0);
-            rowProduto.createCell(4).setCellValue(p.getCost() != null ? p.getCost().doubleValue() : 0.0);
-            rowProduto.createCell(5).setCellValue(p.getProfit() != null ? p.getProfit().doubleValue() : 0.0);
+            BigDecimal cost = nz(p.getCost());
+            rowProduto.createCell(3).setCellValue(p.getQuantitySold() > 0 ? cost.divide(BigDecimal.valueOf(p.getQuantitySold()), 2, BigDecimal.ROUND_HALF_UP).doubleValue() : 0.0);
+            setCurrency(rowProduto.createCell(4), cost, currencyStyle);
+            setCurrency(rowProduto.createCell(5), saleExtrasBySku.getOrDefault(p.getSku(), BigDecimal.ZERO), currencyStyle);
+            setCurrency(rowProduto.createCell(6), nz(p.getRevenue()), currencyStyle);
+            setCurrency(rowProduto.createCell(7), nz(p.getProfit()), currencyStyle);
         }
 
-        autoSize(produtos, 6);
+        autoSize(produtos, 8);
+    }
+
+    private void fillManualCostsSheet(Workbook workbook, List<ExtraCost> costs, CellStyle headerStyle, CellStyle currencyStyle) {
+        Sheet sheet = workbook.createSheet("Custos extras manuais");
+        Row header = sheet.createRow(0);
+        createHeaderCell(header, 0, "Descrição", headerStyle);
+        createHeaderCell(header, 1, "Valor", headerStyle);
+        int index = 1;
+        BigDecimal total = BigDecimal.ZERO;
+        for (ExtraCost cost : costs) {
+            Row row = sheet.createRow(index++);
+            row.createCell(0).setCellValue(cost.getName() == null ? "" : cost.getName());
+            setCurrency(row.createCell(1), nz(cost.getValue()), currencyStyle);
+            total = total.add(nz(cost.getValue()));
+        }
+        Row totalRow = sheet.createRow(index);
+        createHeaderCell(totalRow, 0, "Total custos extras manuais", headerStyle);
+        setCurrency(totalRow.createCell(1), total, currencyStyle);
+        autoSize(sheet, 2);
     }
 
     private CellStyle createHeaderStyle(Workbook workbook) {
@@ -204,6 +252,21 @@ public class ReportService {
         CellStyle style = workbook.createCellStyle();
         style.setFont(font);
         return style;
+    }
+
+    private CellStyle createCurrencyStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setDataFormat(workbook.createDataFormat().getFormat("R$ #,##0.00"));
+        return style;
+    }
+
+    private void setCurrency(Cell cell, BigDecimal value, CellStyle style) {
+        cell.setCellValue(nz(value).doubleValue());
+        cell.setCellStyle(style);
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     private void createHeaderCell(Row row, int col, String value, CellStyle style) {
